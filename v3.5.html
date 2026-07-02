@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>React POC</title>
+    <title>Loop EBITDA Model v3.5.1</title>
 </head>
-<body style="margin: 0; padding: 0;">
+<body style="margin: 0; padding: 0; background: #0d1017;">
     <div id="root"></div>
 
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -18,7 +18,18 @@
           throw new Error("React or ReactDOM failed to load from CDN.");
         }
 
-        const {useMemo, useState} = React;
+        const {useEffect, useMemo, useState} = React;
+
+        function useViewport() {
+          const getWidth = () => (typeof window === "undefined" ? 480 : window.innerWidth);
+          const [width, setWidth] = useState(getWidth);
+          useEffect(() => {
+            const onResize = () => setWidth(getWidth());
+            window.addEventListener("resize", onResize);
+            return () => window.removeEventListener("resize", onResize);
+          }, []);
+          return width;
+        }
 
         function InlineIcon({children, size = 13, color = "currentColor"}) {
           return (
@@ -50,7 +61,7 @@
 
         // (위 설명서 헤더가 여기 위치)
     /* ============================================================================
-     * 루프 적용 EBITDA 개선 추정모델 — 팀 설명서 (v3.5)
+     * 루프 적용 EBITDA 개선 추정모델 — 팀 설명서 (v3.5.1)
      * ============================================================================
      * 이 헤더는 코드와 함께 버전관리되는 정식 문서입니다. 모델 수정 시 이 헤더도
      * 함께 갱신하십시오. 버전 번호는 파일명·kicker·이 헤더·footer 4곳을 일치시킬 것.
@@ -174,6 +185,7 @@
      * v3.2  원격케어 코호트 풀스택 · LOS haircut · B3 분리(TM/MA) · APCM↔VBC 게이트
      * v3.3  B1 경로 청구 엔진(W·M1·M2 flow=퇴원수 / M3 stock=panel) · M1↔RCM 경계 분리
      * v3.5  CMS AHCAH 실측 savEp 밴드 적용 · selBias 보정계수 신설 · B3/LOS IC 방어문구 추가
+     * v3.5.1 반응형 웹 레이아웃 적용(모바일 1컬럼 / 데스크톱 2컬럼)
      *
      * ★ 한 줄 결론: 1차 컷으로 구조는 적정, 숫자는 밴드로만. 어느 레버가 어디서 움직이나를
      *   보는 스크리너로 쓰고, 프라이싱 확정은 [DR] 값 교체 후.
@@ -330,6 +342,8 @@
             const hi = compute(SCEN.aggr, lv, inp, regime, SCEN.aggr.lambda, selBias).net;
             return { lo: Math.min(lo, hi), hi: Math.max(lo, hi) };
           }, [lv, inp, regime, selBias]);
+          const viewport = useViewport();
+          const S = useMemo(() => createStyles(viewport), [viewport]);
 
           const fmt = (usd) => {
             if (cur === "KRW") { const e = (usd * fx) / 1e8; return `${Math.abs(e) >= 100 ? e.toFixed(0) : e.toFixed(1)}억`; }
@@ -359,18 +373,19 @@
           const range = bHi - bLo || 1;
           const pct = (v) => `${((v - bLo) / range) * 100}%`;
 
-          const S = styles;
           return (
             <div style={S.root}>
               <style>{`*{box-sizing:border-box;}
                 input[type=number]{-moz-appearance:textfield;}
                 input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
                 .seg:hover{background:#1c2230;} .lv:active{transform:scale(.99);}
-                input[type=range]{accent-color:#FF9F43;}`}</style>
+                input[type=range]{accent-color:#FF9F43;}
+                button,input{font:inherit;}
+                button{touch-action:manipulation;}`}</style>
 
               <div style={S.header}>
                 <div>
-                  <div style={S.kicker}>CAPTURE × COUPLING · v3.5</div>
+                  <div style={S.kicker}>CAPTURE × COUPLING · v3.5.1</div>
                   <div style={S.title}>루프 적용 EBITDA 개선 추정모델</div>
                 </div>
                 <div style={S.curToggle}>
@@ -423,186 +438,196 @@
                 ))}
               </div>
 
-              <div style={S.card}>
-                <div style={S.cardHead}><Layers size={13} /> 레버별 기여</div>
-                {items.map((it, i) => (
-                  <div key={i} style={S.wfRow}>
-                    <div style={S.wfLabel}>{it.label}</div>
-                    <div style={S.wfBarWrap}><div style={{ ...S.wfBar, width: `${(Math.abs(it.v) / maxAbs) * 100}%`, background: it.c, opacity: it.v < 0 ? 0.85 : 1 }} /></div>
-                    <div style={{ ...S.wfVal, color: it.v < 0 ? "#E06C75" : "#cdd6e6" }}>{sign(it.v)}{fmt(Math.abs(it.v))}</div>
-                  </div>
-                ))}
-                <div style={S.wfNet}><span>순 ΔEBITDA</span><span style={{ color: R.net >= 0 ? "#4FD1C5" : "#E06C75", fontWeight: 700 }}>{sign(R.net)}{fmt(Math.abs(R.net))}</span></div>
-              </div>
-
-              {(R.onCount < 2 || R.pepperCapped || R.apcmFloor || (lv.los && R.occGate < 0.3)) && (
-                <div style={S.warnBox}>
-                  {R.apcmFloor && (
-                    <div style={S.warn}><TriangleAlert size={13} color="#B39DDB" />
-                      <span>APCM 청구 = ACO/REACH/MCP 참여·MIPS MVP 필수 → 순수 FFS 불가. B3 θ 최소 0.5 자동 적용(VBC 요건 충족).</span></div>
-                  )}
-                  {lv.los && R.occGate < 0.3 && (
-                    <div style={S.warn}><TriangleAlert size={13} color="#F6C177" />
-                      <span>점유율 {inp.occ}% — throughput gate {R.occGate.toFixed(2)}. 빈 병상 수요 부족 → LOS는 변동비만.</span></div>
-                  )}
-                  {R.onCount < 2 && (
-                    <div style={S.warn}><TriangleAlert size={13} color="#F6C177" />
-                      <span>cost 레버 {R.onCount}개 ON — λ 시너지 = 0 (2개↑ 필요).</span></div>
-                  )}
-                  {R.pepperCapped && (
-                    <div style={S.warn}><TriangleAlert size={13} color="#E06C75" />
-                      <span>PEPPER {inp.pepper}p — RCM/CMI audit exposure, capture 50% 감액.</span></div>
-                  )}
-                </div>
-              )}
-
-              {/* 경로 청구 엔진 W→M1→M2→M3 */}
-              <div style={S.card}>
-                <div style={S.cardHead} onClick={() => setShowStack(!showStack)}>
-                  <span style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-                    <Activity size={13} /> 경로 청구 엔진 W→M1→M2→M3 {showStack ? "▲" : "▼"}
-                  </span>
-                </div>
-                {showStack && (
-                  <div>
-                    {[
-                      { seg: "W", name: "예방·관문", code: "AWV·스크리닝", den: "flow≈panel", v: R.parts.w },
-                      { seg: "M1", name: "입원 Part B", code: "전문의료 포착", den: "flow: 퇴원수", v: R.parts.m1 },
-                      { seg: "M2", name: "퇴원후 TCM", code: "99495/96 (30일)", den: "flow: 퇴원수", v: R.parts.m2 },
-                      { seg: "M3", name: "종단 관리", code: "APCM·RPM 스택", den: "stock: 등록 panel", v: R.parts.m3 },
-                    ].map((r, i) => (
-                      <div key={i} style={S.stackRow}>
-                        <div style={{ width: 26, fontSize: 11, fontWeight: 800, color: "#4FD1C5", fontFamily: "ui-monospace,monospace", flexShrink: 0 }}>{r.seg}</div>
-                        <div style={{ flex: 1 }}>
-                          <div style={S.stackName}>{r.name} <span style={S.stackMix}>{r.den}</span></div>
-                          <div style={S.stackCode}>{r.code}</div>
-                        </div>
-                        <div style={S.stackGross}>{fmt(r.v)}</div>
+              <div style={S.dashboard}>
+                <div style={S.mainCol}>
+                  <div style={S.card}>
+                    <div style={S.cardHead}><Layers size={13} /> 레버별 기여</div>
+                    {items.map((it, i) => (
+                      <div key={i} style={S.wfRow}>
+                        <div style={S.wfLabel}>{it.label}</div>
+                        <div style={S.wfBarWrap}><div style={{ ...S.wfBar, width: `${(Math.abs(it.v) / maxAbs) * 100}%`, background: it.c, opacity: it.v < 0 ? 0.85 : 1 }} /></div>
+                        <div style={{ ...S.wfVal, color: it.v < 0 ? "#E06C75" : "#cdd6e6" }}>{sign(it.v)}{fmt(Math.abs(it.v))}</div>
                       </div>
                     ))}
-                    <div style={S.stackFoot}>
-                      경로 gross 합 {fmt(R.teleGrossAll)} × payer(TM ×1 / MA ×m) − ACO 음결합 = 실현 원격케어 {fmt(R.parts.telecare - R.parts.clawback)}.
-                      flow(W·M1·M2)는 퇴원수에 연동 → 볼륨·throughput과 함께 증가. stock(M3)은 등록 panel×π. M3 스택 net PMPM {fmt(R.netPMPM)}.
-                      경계: M1=입원 전문의료(Part B), RCM=Part A DRG/CMI → 별개 stream, 이중계상 아님. W(AWV)→M3(APCM)은 순차(관문·월반복), 중복 아님.
-                      배타규칙(적격률에 반영): AWV 연1회·TCM 퇴원후 30일 1회·APCM↔TCM 동월 배타.
-                    </div>
+                    <div style={S.wfNet}><span>순 ΔEBITDA</span><span style={{ color: R.net >= 0 ? "#4FD1C5" : "#E06C75", fontWeight: 700 }}>{sign(R.net)}{fmt(Math.abs(R.net))}</span></div>
                   </div>
-                )}
-              </div>
 
-              <div style={S.card}>
-                <div style={S.cardHead}><Power size={13} /> 레버 ON / OFF</div>
-                {["B1", "B2", "B3"].map((layer) => (
-                  <div key={layer}>
-                    <div style={{ ...S.layerBar, color: LAYER_META[layer].color }}>
-                      {layer} · {LAYER_META[layer].name}
-                      {layer === "B2" && <span style={S.lamTag}>× (1+λ)</span>}
-                      {layer === "B3" && <span style={{ ...S.lamTag, color: "#B39DDB", background: "#1c1626" }}>TM θ · MA maVbc</span>}
+                  {(R.onCount < 2 || R.pepperCapped || R.apcmFloor || (lv.los && R.occGate < 0.3)) && (
+                    <div style={S.warnBox}>
+                      {R.apcmFloor && (
+                        <div style={S.warn}><TriangleAlert size={13} color="#B39DDB" />
+                          <span>APCM 청구 = ACO/REACH/MCP 참여·MIPS MVP 필수 → 순수 FFS 불가. B3 θ 최소 0.5 자동 적용(VBC 요건 충족).</span></div>
+                      )}
+                      {lv.los && R.occGate < 0.3 && (
+                        <div style={S.warn}><TriangleAlert size={13} color="#F6C177" />
+                          <span>점유율 {inp.occ}% — throughput gate {R.occGate.toFixed(2)}. 빈 병상 수요 부족 → LOS는 변동비만.</span></div>
+                      )}
+                      {R.onCount < 2 && (
+                        <div style={S.warn}><TriangleAlert size={13} color="#F6C177" />
+                          <span>cost 레버 {R.onCount}개 ON — λ 시너지 = 0 (2개↑ 필요).</span></div>
+                      )}
+                      {R.pepperCapped && (
+                        <div style={S.warn}><TriangleAlert size={13} color="#E06C75" />
+                          <span>PEPPER {inp.pepper}p — RCM/CMI audit exposure, capture 50% 감액.</span></div>
+                      )}
                     </div>
-                    {LEVERS.filter((x) => x.layer === layer).map((x) => {
-                      const on = lv[x.key];
-                      const val = x.key === "value" ? R.parts.b3_tm + R.parts.b3_ma
-                        : x.key === "telecare" ? R.parts.telecare - R.parts.clawback
-                        : x.key === "rcm" ? R.parts.rcm
-                        : x.key === "selfpayConv" ? R.parts.selfpayConv
-                        : x.key === "selfpayCost" ? R.parts.c_selfpay
-                        : x.key === "los" ? R.parts.c_los + R.parts.throughput
-                        : x.key === "hrr" ? R.parts.c_hrr : R.parts.c_agency;
-                      return (
-                        <div key={x.key} className="lv" onClick={() => setLv({ ...lv, [x.key]: !on })} style={{ ...S.lever, opacity: on ? 1 : 0.45 }}>
-                          <div style={{ ...S.toggle, background: on ? LAYER_META[layer].color : "#2a3140" }}>
-                            <div style={{ ...S.knob, transform: on ? "translateX(16px)" : "translateX(0)" }} />
+                  )}
+
+                  {/* 경로 청구 엔진 W→M1→M2→M3 */}
+                  <div style={S.card}>
+                    <div style={S.cardHead} onClick={() => setShowStack(!showStack)}>
+                      <span style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                        <Activity size={13} /> 경로 청구 엔진 W→M1→M2→M3 {showStack ? "▲" : "▼"}
+                      </span>
+                    </div>
+                    {showStack && (
+                      <div>
+                        {[
+                          { seg: "W", name: "예방·관문", code: "AWV·스크리닝", den: "flow≈panel", v: R.parts.w },
+                          { seg: "M1", name: "입원 Part B", code: "전문의료 포착", den: "flow: 퇴원수", v: R.parts.m1 },
+                          { seg: "M2", name: "퇴원후 TCM", code: "99495/96 (30일)", den: "flow: 퇴원수", v: R.parts.m2 },
+                          { seg: "M3", name: "종단 관리", code: "APCM·RPM 스택", den: "stock: 등록 panel", v: R.parts.m3 },
+                        ].map((r, i) => (
+                          <div key={i} style={S.stackRow}>
+                            <div style={{ width: 26, fontSize: 11, fontWeight: 800, color: "#4FD1C5", fontFamily: "ui-monospace,monospace", flexShrink: 0 }}>{r.seg}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={S.stackName}>{r.name} <span style={S.stackMix}>{r.den}</span></div>
+                              <div style={S.stackCode}>{r.code}</div>
+                            </div>
+                            <div style={S.stackGross}>{fmt(r.v)}</div>
                           </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={S.leverName}>{x.name}</div>
-                            <div style={S.leverSub}>{x.sub}</div>
-                            <div style={S.leverCap}>{x.cap}</div>
-                          </div>
-                          <div style={{ ...S.leverVal, color: on ? "#cdd6e6" : "#5b6577" }}>{on ? fmt(val) : "—"}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-
-              <div style={S.card}>
-                <div style={S.cardHead}><Link2 size={13} /> λ 커플링 (cost-side)</div>
-                <div style={S.lamRow}>
-                  <input type="range" min="0" max="0.85" step="0.01" value={lambda} onChange={(e) => setLambda(parseFloat(e.target.value))} style={{ flex: 1 }} />
-                  <div style={S.lamVal}>{lambda.toFixed(2)}</div>
-                </div>
-                <div style={S.lamNote}>실현 = λ × {R.couplingScale.toFixed(2)} (cost {R.onCount}/4 ON) → {fmt(R.couplingGain)}. single-module 실측 기준·밴드 검정.</div>
-              </div>
-
-              <div style={S.card}>
-                <div style={S.cardHead}><Activity size={13} /> selBias 보정계수 (CMS AHCAH → B3 TM)</div>
-                <div style={S.lamRow}>
-                  <input type="range" min="0.70" max="1.00" step="0.01" value={selBias} onChange={(e) => setSelBias(parseFloat(e.target.value))} style={{ flex: 1 }} />
-                  <div style={{ ...S.lamVal, color: "#B39DDB" }}>{selBias.toFixed(2)}</div>
-                </div>
-                <div style={S.lamNote}>
-                  CMS 절감 풀 {fmt(R.parts.cmsSavingsPool)} × selBias × θ×{R.rmultEff.toFixed(2)} → TM shared {fmt(R.parts.b3_tm)}.
-                  기본 0.90은 HCC gap(2.04/2.26≈0.90) 기반 근사입니다. 정식 위험보정이 아니며 point estimate가 아니라 밴드 조정계수입니다.
-                </div>
-              </div>
-
-              <div style={S.card}>
-                <div style={S.cardHead} onClick={() => setShowInputs(!showInputs)}>
-                  <span style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Building2 size={13} /> 병원 baseline 입력 {showInputs ? "▲" : "▼"}</span>
-                </div>
-                {showInputs && (
-                  <div style={S.inputGrid}>
-                    {[
-                      ["discharges", "Medicare 퇴원수/년", ""], ["partA", "Part A 입원지불액", "$M"],
-                      ["varCostDay", "1일당 변동비", "$"], ["avgLOS", "평균 LOS", "일"],
-                      ["beds", "병상수", "bed"], ["occ", "현 점유율", "%"],
-                      ["losAddr", "LOS 대상 퇴원 비중", "%"], ["tmPct", "TM 비중", "%"],
-                      ["panel", "외래 panel (APCM=전체)", ""], ["hrrpRate", "HRRP 페널티율", "%"],
-                      ["acoShare", "ACO 귀속 TM", "%"], ["selfPay", "Self-Pay at-risk", "$M"],
-                      ["agency", "Agency labor", "$M"], ["pepper", "PEPPER percentile", "p"],
-                      ["capex", "Loop 구축비(1회)", "$M"], ["opexFixed", "운용비 고정", "$M/yr"],
-                      ["opexPerPt", "운용비 환자당", "$/yr"],
-                    ].map(([k, label, unit]) => (
-                      <div key={k} style={S.inputCell}>
-                        <label style={S.inputLabel}>{label}</label>
-                        <div style={S.inputWrap}>
-                          <input type="number" value={inp[k]} onChange={(e) => setInp({ ...inp, [k]: parseFloat(e.target.value) || 0 })} style={S.input} />
-                          {unit && <span style={S.inputUnit}>{unit}</span>}
+                        ))}
+                        <div style={S.stackFoot}>
+                          경로 gross 합 {fmt(R.teleGrossAll)} × payer(TM ×1 / MA ×m) − ACO 음결합 = 실현 원격케어 {fmt(R.parts.telecare - R.parts.clawback)}.
+                          flow(W·M1·M2)는 퇴원수에 연동 → 볼륨·throughput과 함께 증가. stock(M3)은 등록 panel×π. M3 스택 net PMPM {fmt(R.netPMPM)}.
+                          경계: M1=입원 전문의료(Part B), RCM=Part A DRG/CMI → 별개 stream, 이중계상 아님. W(AWV)→M3(APCM)은 순차(관문·월반복), 중복 아님.
+                          배타규칙(적격률에 반영): AWV 연1회·TCM 퇴원후 30일 1회·APCM↔TCM 동월 배타.
                         </div>
                       </div>
-                    ))}
-                    <div style={S.inputFoot}>운용비 환자당 = 플랫폼 몫만(케어 인건비는 margin에 반영). 구축비=EBITDA 밖·회수기간만. LOS 대상 비중 = pathway 최적화 가능 퇴원 서브셋.</div>
+                    )}
                   </div>
-                )}
+
+                  <div style={S.card}>
+                    <div style={S.cardHead}><Power size={13} /> 레버 ON / OFF</div>
+                    {["B1", "B2", "B3"].map((layer) => (
+                      <div key={layer}>
+                        <div style={{ ...S.layerBar, color: LAYER_META[layer].color }}>
+                          {layer} · {LAYER_META[layer].name}
+                          {layer === "B2" && <span style={S.lamTag}>× (1+λ)</span>}
+                          {layer === "B3" && <span style={{ ...S.lamTag, color: "#B39DDB", background: "#1c1626" }}>TM θ · MA maVbc</span>}
+                        </div>
+                        {LEVERS.filter((x) => x.layer === layer).map((x) => {
+                          const on = lv[x.key];
+                          const val = x.key === "value" ? R.parts.b3_tm + R.parts.b3_ma
+                            : x.key === "telecare" ? R.parts.telecare - R.parts.clawback
+                            : x.key === "rcm" ? R.parts.rcm
+                            : x.key === "selfpayConv" ? R.parts.selfpayConv
+                            : x.key === "selfpayCost" ? R.parts.c_selfpay
+                            : x.key === "los" ? R.parts.c_los + R.parts.throughput
+                            : x.key === "hrr" ? R.parts.c_hrr : R.parts.c_agency;
+                          return (
+                            <div key={x.key} className="lv" onClick={() => setLv({ ...lv, [x.key]: !on })} style={{ ...S.lever, opacity: on ? 1 : 0.45 }}>
+                              <div style={{ ...S.toggle, background: on ? LAYER_META[layer].color : "#2a3140" }}>
+                                <div style={{ ...S.knob, transform: on ? "translateX(16px)" : "translateX(0)" }} />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={S.leverName}>{x.name}</div>
+                                <div style={S.leverSub}>{x.sub}</div>
+                                <div style={S.leverCap}>{x.cap}</div>
+                              </div>
+                              <div style={{ ...S.leverVal, color: on ? "#cdd6e6" : "#5b6577" }}>{on ? fmt(val) : "—"}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={S.sideCol}>
+                  <div style={S.card}>
+                    <div style={S.cardHead}><Link2 size={13} /> λ 커플링 (cost-side)</div>
+                    <div style={S.lamRow}>
+                      <input type="range" min="0" max="0.85" step="0.01" value={lambda} onChange={(e) => setLambda(parseFloat(e.target.value))} style={{ flex: 1, minWidth: 0 }} />
+                      <div style={S.lamVal}>{lambda.toFixed(2)}</div>
+                    </div>
+                    <div style={S.lamNote}>실현 = λ × {R.couplingScale.toFixed(2)} (cost {R.onCount}/4 ON) → {fmt(R.couplingGain)}. single-module 실측 기준·밴드 검정.</div>
+                  </div>
+
+                  <div style={S.card}>
+                    <div style={S.cardHead}><Activity size={13} /> selBias 보정계수 (CMS AHCAH → B3 TM)</div>
+                    <div style={S.lamRow}>
+                      <input type="range" min="0.70" max="1.00" step="0.01" value={selBias} onChange={(e) => setSelBias(parseFloat(e.target.value))} style={{ flex: 1, minWidth: 0 }} />
+                      <div style={{ ...S.lamVal, color: "#B39DDB" }}>{selBias.toFixed(2)}</div>
+                    </div>
+                    <div style={S.lamNote}>
+                      CMS 절감 풀 {fmt(R.parts.cmsSavingsPool)} × selBias × θ×{R.rmultEff.toFixed(2)} → TM shared {fmt(R.parts.b3_tm)}.
+                      기본 0.90은 HCC gap(2.04/2.26≈0.90) 기반 근사입니다. 정식 위험보정이 아니며 point estimate가 아니라 밴드 조정계수입니다.
+                    </div>
+                  </div>
+
+                  <div style={S.card}>
+                    <div style={S.cardHead} onClick={() => setShowInputs(!showInputs)}>
+                      <span style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Building2 size={13} /> 병원 baseline 입력 {showInputs ? "▲" : "▼"}</span>
+                    </div>
+                    {showInputs && (
+                      <div style={S.inputGrid}>
+                        {[
+                          ["discharges", "Medicare 퇴원수/년", ""], ["partA", "Part A 입원지불액", "$M"],
+                          ["varCostDay", "1일당 변동비", "$"], ["avgLOS", "평균 LOS", "일"],
+                          ["beds", "병상수", "bed"], ["occ", "현 점유율", "%"],
+                          ["losAddr", "LOS 대상 퇴원 비중", "%"], ["tmPct", "TM 비중", "%"],
+                          ["panel", "외래 panel (APCM=전체)", ""], ["hrrpRate", "HRRP 페널티율", "%"],
+                          ["acoShare", "ACO 귀속 TM", "%"], ["selfPay", "Self-Pay at-risk", "$M"],
+                          ["agency", "Agency labor", "$M"], ["pepper", "PEPPER percentile", "p"],
+                          ["capex", "Loop 구축비(1회)", "$M"], ["opexFixed", "운용비 고정", "$M/yr"],
+                          ["opexPerPt", "운용비 환자당", "$/yr"],
+                        ].map(([k, label, unit]) => (
+                          <div key={k} style={S.inputCell}>
+                            <label style={S.inputLabel}>{label}</label>
+                            <div style={S.inputWrap}>
+                              <input type="number" value={inp[k]} onChange={(e) => setInp({ ...inp, [k]: parseFloat(e.target.value) || 0 })} style={S.input} />
+                              {unit && <span style={S.inputUnit}>{unit}</span>}
+                            </div>
+                          </div>
+                        ))}
+                        <div style={S.inputFoot}>운용비 환자당 = 플랫폼 몫만(케어 인건비는 margin에 반영). 구축비=EBITDA 밖·회수기간만. LOS 대상 비중 = pathway 최적화 가능 퇴원 서브셋.</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div style={S.footer}>
-                v3.5: CMS AHCAH 실측 savEp 밴드(보수 $1,088 / 기본 $1,209 / 공격 $1,640) · selBias 보정계수 · B3 분리(TM/MA) · APCM↔VBC 게이트.
+                v3.5.1: v3.5 엔진 기반 반응형 웹 레이아웃(모바일 1컬럼 / 데스크톱 2컬럼). CMS AHCAH 실측 savEp 밴드(보수 $1,088 / 기본 $1,209 / 공격 $1,640) · selBias 보정계수 · B3 분리(TM/MA) · APCM↔VBC 게이트.
                 B3는 payer 절감 풀이므로 θ·regime 통과 후 병원 EBITDA가 됩니다. LOS 레버는 AHCAH LOS로 정당화하지 않습니다(AHCAH LOS +0.79일).
               </div>
             </div>
           );
         }
 
-        const styles = {
-          root: { maxWidth: 480, margin: "0 auto", padding: "16px 14px 40px", background: "#0d1017", color: "#cdd6e6", minHeight: "100vh", fontFamily: "ui-sans-serif, -apple-system, 'Segoe UI', sans-serif" },
-          header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 },
+        function createStyles(vw) {
+          const wide = vw >= 900;
+          const tablet = vw >= 640;
+          const compact = vw < 430;
+          return {
+          root: { width: "100%", maxWidth: wide ? 1180 : 560, margin: "0 auto", padding: wide ? "24px 24px 48px" : compact ? "12px 10px 32px" : "16px 14px 40px", background: "#0d1017", color: "#cdd6e6", minHeight: "100vh", fontFamily: "ui-sans-serif, -apple-system, 'Segoe UI', sans-serif" },
+          header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 14, flexWrap: "wrap" },
           kicker: { fontSize: 9.5, letterSpacing: 2, color: "#5b6577", fontWeight: 700, fontFamily: "ui-monospace, monospace" },
-          title: { fontSize: 18, fontWeight: 800, letterSpacing: -0.4, color: "#f0f3f9", marginTop: 2, lineHeight: 1.2 },
+          title: { fontSize: wide ? 24 : 18, fontWeight: 800, letterSpacing: 0, color: "#f0f3f9", marginTop: 2, lineHeight: 1.2 },
           curToggle: { display: "flex", gap: 2, background: "#161b26", borderRadius: 8, padding: 2 },
           curBtn: { border: "none", background: "transparent", color: "#5b6577", fontSize: 11, fontWeight: 700, padding: "5px 9px", borderRadius: 6, cursor: "pointer", fontFamily: "ui-monospace, monospace" },
           curBtnOn: { background: "#2a3140", color: "#f0f3f9" },
-          segRow: { display: "flex", gap: 6, marginBottom: 10 },
+          segRow: { display: "grid", gridTemplateColumns: compact ? "1fr" : "repeat(auto-fit, minmax(92px, 1fr))", gap: 6, marginBottom: 10 },
           seg: { flex: 1, border: "1px solid #232a38", background: "#12161f", color: "#8792a6", padding: "9px 0", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer" },
           segSm: { flex: 1, border: "1px solid #232a38", background: "#12161f", color: "#8792a6", padding: "8px 2px", borderRadius: 9, fontSize: 10.5, fontWeight: 700, cursor: "pointer" },
           segOn: { background: "#1e2636", color: "#f0f3f9", borderColor: "#3a4558" },
           regimeLabel: { fontSize: 9.5, color: "#5b6577", fontWeight: 700, letterSpacing: 0.5, margin: "4px 0 6px" },
           regimeNote: { fontSize: 10, color: "#8792a6", margin: "7px 2px 16px", lineHeight: 1.4 },
-          hero: { background: "linear-gradient(160deg,#141b28,#0f141d)", border: "1px solid #232a38", borderRadius: 16, padding: "18px 18px 16px", marginBottom: 14 },
+          hero: { background: "linear-gradient(160deg,#141b28,#0f141d)", border: "1px solid #232a38", borderRadius: 16, padding: wide ? "24px 26px 22px" : "18px 18px 16px", marginBottom: 14 },
           heroLabel: { fontSize: 11, color: "#8792a6", fontWeight: 600, marginBottom: 4 },
-          heroNum: { fontSize: 40, fontWeight: 800, letterSpacing: -1.5, fontFamily: "ui-monospace, monospace", lineHeight: 1 },
-          heroMeta: { display: "flex", gap: 8, fontSize: 10.5, color: "#7a859a", marginTop: 10, fontFamily: "ui-monospace, monospace" },
+          heroNum: { fontSize: wide ? 54 : compact ? 34 : 40, fontWeight: 800, letterSpacing: 0, fontFamily: "ui-monospace, monospace", lineHeight: 1, overflowWrap: "anywhere" },
+          heroMeta: { display: "flex", gap: 8, fontSize: 10.5, color: "#7a859a", marginTop: 10, fontFamily: "ui-monospace, monospace", flexWrap: "wrap" },
           metaDiv: { color: "#3a4558" },
           bandWrap: { marginTop: 14 },
           bandTrack: { position: "relative", height: 6, background: "#232a38", borderRadius: 4 },
@@ -610,41 +635,44 @@
           bandMark: { position: "absolute", top: -3, width: 3, height: 12, background: "#f0f3f9", borderRadius: 2, transform: "translateX(-1.5px)" },
           bandZero: { position: "absolute", top: -4, width: 1, height: 14, background: "#5b6577" },
           bandLabels: { display: "flex", justifyContent: "space-between", fontSize: 10, color: "#5b6577", marginTop: 7, fontFamily: "ui-monospace, monospace" },
-          chips: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 14 },
+          chips: { display: "grid", gridTemplateColumns: compact ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: 6, marginBottom: 14 },
           chip: { background: "#12161f", border: "1px solid", borderRadius: 11, padding: "9px 8px" },
           chipDot: { width: 7, height: 7, borderRadius: 4, marginBottom: 5 },
-          chipName: { fontSize: 8.5, color: "#8792a6", fontWeight: 700, lineHeight: 1.2, height: 22 },
-          chipVal: { fontSize: 14, fontWeight: 800, fontFamily: "ui-monospace, monospace", marginTop: 2 },
+          chipName: { fontSize: 8.5, color: "#8792a6", fontWeight: 700, lineHeight: 1.2, minHeight: compact ? 0 : 22 },
+          chipVal: { fontSize: wide ? 16 : 14, fontWeight: 800, fontFamily: "ui-monospace, monospace", marginTop: 2, overflowWrap: "anywhere" },
           chipTag: { fontSize: 7.5, color: "#5b6577", marginTop: 3, lineHeight: 1.2 },
-          card: { background: "#12161f", border: "1px solid #232a38", borderRadius: 14, padding: 14, marginBottom: 12 },
+          dashboard: { display: "grid", gridTemplateColumns: wide ? "minmax(0, 1.35fr) minmax(320px, .85fr)" : "1fr", gap: wide ? 16 : 0, alignItems: "start" },
+          mainCol: { minWidth: 0 },
+          sideCol: { minWidth: 0, position: wide ? "sticky" : "static", top: wide ? 18 : "auto" },
+          card: { background: "#12161f", border: "1px solid #232a38", borderRadius: 14, padding: tablet ? 16 : 14, marginBottom: 12, overflow: "hidden" },
           cardHead: { display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "#8792a6", marginBottom: 12, letterSpacing: 0.3 },
-          wfRow: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 },
-          wfLabel: { width: 104, fontSize: 10.5, color: "#a9b3c6", flexShrink: 0 },
+          wfRow: { display: "grid", gridTemplateColumns: compact ? "86px minmax(54px, 1fr) 64px" : "118px minmax(80px, 1fr) 78px", alignItems: "center", gap: compact ? 6 : 8, marginBottom: 8 },
+          wfLabel: { fontSize: 10.5, color: "#a9b3c6", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: compact ? "normal" : "nowrap" },
           wfBarWrap: { flex: 1, height: 14, background: "#0d1017", borderRadius: 3, overflow: "hidden" },
           wfBar: { height: 14, borderRadius: 3, transition: "width .35s cubic-bezier(.4,0,.2,1)" },
-          wfVal: { width: 72, textAlign: "right", fontSize: 10.5, fontFamily: "ui-monospace, monospace", flexShrink: 0 },
+          wfVal: { textAlign: "right", fontSize: 10.5, fontFamily: "ui-monospace, monospace", flexShrink: 0, overflowWrap: "anywhere" },
           wfNet: { display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #232a38", marginTop: 6, paddingTop: 10, fontSize: 13, fontWeight: 700, color: "#f0f3f9", fontFamily: "ui-monospace, monospace" },
           warnBox: { display: "flex", flexDirection: "column", gap: 7, marginBottom: 12 },
           warn: { display: "flex", alignItems: "flex-start", gap: 7, background: "#1a1410", border: "1px solid #3a2f1c", borderRadius: 9, padding: "8px 10px", fontSize: 10.5, color: "#d6c8a8", lineHeight: 1.35 },
           layerBar: { fontSize: 10, fontWeight: 800, letterSpacing: 0.5, margin: "12px 0 6px", display: "flex", alignItems: "center", gap: 6 },
           lamTag: { fontSize: 8.5, color: "#FF9F43", background: "#231a10", padding: "1px 5px", borderRadius: 4, fontWeight: 700 },
-          lever: { display: "flex", alignItems: "center", gap: 11, padding: "8px 4px", cursor: "pointer", borderBottom: "1px solid #1a2029", transition: "opacity .2s" },
+          lever: { display: "flex", alignItems: "center", gap: 11, padding: "8px 4px", cursor: "pointer", borderBottom: "1px solid #1a2029", transition: "opacity .2s", minWidth: 0 },
           toggle: { width: 34, height: 18, borderRadius: 10, padding: 2, flexShrink: 0, transition: "background .2s" },
           knob: { width: 14, height: 14, borderRadius: 7, background: "#f0f3f9", transition: "transform .2s" },
           leverName: { fontSize: 12.5, fontWeight: 700, color: "#e2e8f2" },
           leverSub: { fontSize: 9.5, color: "#7a859a", marginTop: 1 },
           leverCap: { fontSize: 8.5, color: "#5b6577", marginTop: 2, fontFamily: "ui-monospace, monospace" },
-          leverVal: { fontSize: 11, fontFamily: "ui-monospace, monospace", flexShrink: 0, minWidth: 60, textAlign: "right" },
+          leverVal: { fontSize: 11, fontFamily: "ui-monospace, monospace", flexShrink: 0, minWidth: compact ? 48 : 60, textAlign: "right", overflowWrap: "anywhere" },
           stackRow: { display: "flex", alignItems: "center", gap: 8, padding: "7px 2px", borderBottom: "1px solid #1a2029" },
           stackName: { fontSize: 11.5, fontWeight: 700, color: "#e2e8f2" },
           stackMix: { fontSize: 9, color: "#7a859a", fontWeight: 600, marginLeft: 4 },
           stackCode: { fontSize: 9, color: "#5b6577", marginTop: 1, fontFamily: "ui-monospace, monospace" },
-          stackGross: { fontSize: 11, fontFamily: "ui-monospace, monospace", color: "#4FD1C5", flexShrink: 0 },
+          stackGross: { fontSize: 11, fontFamily: "ui-monospace, monospace", color: "#4FD1C5", flexShrink: 0, textAlign: "right" },
           stackFoot: { fontSize: 9, color: "#5b6577", lineHeight: 1.5, marginTop: 8 },
-          lamRow: { display: "flex", alignItems: "center", gap: 12 },
+          lamRow: { display: "flex", alignItems: "center", gap: 12, minWidth: 0 },
           lamVal: { fontSize: 16, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#FF9F43", minWidth: 40, textAlign: "right" },
           lamNote: { fontSize: 10, color: "#7a859a", marginTop: 9, lineHeight: 1.45 },
-          inputGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 },
+          inputGrid: { display: "grid", gridTemplateColumns: wide ? "1fr" : compact ? "1fr" : "1fr 1fr", gap: 9 },
           inputCell: {},
           inputLabel: { fontSize: 9.5, color: "#7a859a", display: "block", marginBottom: 3 },
           inputWrap: { display: "flex", alignItems: "center", background: "#0d1017", border: "1px solid #232a38", borderRadius: 7, padding: "0 8px" },
@@ -652,7 +680,8 @@
           inputUnit: { fontSize: 10, color: "#5b6577", marginLeft: 4 },
           inputFoot: { gridColumn: "1 / -1", fontSize: 9, color: "#5b6577", lineHeight: 1.5, marginTop: 4 },
           footer: { fontSize: 9.5, color: "#5b6577", lineHeight: 1.5, marginTop: 8, padding: "0 2px" },
-        };
+          };
+        }
 
             document.getElementById('root').dataset.mounted = 'true';
             ReactDOM.createRoot(document.getElementById('root')).render(<App />);
