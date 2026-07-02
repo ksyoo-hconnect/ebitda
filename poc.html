@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>React POC</title>
+</head>
+<body style="margin: 0; padding: 0;">
+    <div id="root"></div>
+
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -46,7 +50,7 @@
 
         // (위 설명서 헤더가 여기 위치)
     /* ============================================================================
-     * 루프 적용 EBITDA 개선 추정모델 — 팀 설명서 (v3.3)
+     * 루프 적용 EBITDA 개선 추정모델 — 팀 설명서 (v3.5)
      * ============================================================================
      * 이 헤더는 코드와 함께 버전관리되는 정식 문서입니다. 모델 수정 시 이 헤더도
      * 함께 갱신하십시오. 버전 번호는 파일명·kicker·이 헤더·footer 4곳을 일치시킬 것.
@@ -101,9 +105,15 @@
      *   realizable haircut: 진짜 원가에서 빠지는 몫만(0.4일 단축이 곧 FTE절감 아님 — step-fixed 착시).
      *   throughput: 빈 병상→신규환자, 점유율 게이팅(55%↓ 거의 0, 85%+ 완전 실현).
      *
-     * ── 7. B3 VBC — 두 갈래 ─────────────────────────────────────────────────
-     *   TM shared savings = 퇴원수 × %TM × ACO귀속 × 절감/에피소드 × θ × regime배수
+     * ── 7. B3 VBC — CMS AHCAH 실측 앵커 ─────────────────────────────────────
+     *   TM shared savings = 퇴원수 × %TM × ACO귀속 × CMS 절감/에피소드 × selBias × θ × regime배수
      *   MA HCC·품질       = MA lives × HCC값 × maVbc  (위험조정·품질보너스; MA 업사이드)
+     * CMS AHCAH 30일 절감 밴드: 보수 $1,088(top-10 볼륨가중에 선택편의 보수 반영),
+     *   기본 $1,209(볼륨가중 raw), 공격 $1,640(CMS Overall, 25 DRG).
+     * selBias 기본 0.90은 HCC gap(2.04/2.26≈0.90)을 이용한 순귀속 근사. 정식 위험보정
+     *   point estimate가 아니라 밴드 조정계수다.
+     * IC 방어: B3는 payer 절감 풀이지 병원 EBITDA가 아니다. 반드시 θ·regime을 통과해야 한다.
+     * IC 방어: LOS 레버를 AHCAH 데이터로 정당화하지 말 것. AHCAH LOS는 오히려 +0.79일.
      *
      * ── 8. λ·θ·regime — 오해 방지 ──────────────────────────────────────────
      * λ(원가 시너지): 원가 레버 함께 켜면 각자 합보다 더 나오는 부분. 2개↑ ON에서만
@@ -116,7 +126,7 @@
      * ── 9. 파라미터 (3-tier) — 코드 SCEN ───────────────────────────────────
      *   pi(등록전환) .15/.30/.50 · margin(자동화순마진) .45/.60/.72 · adher .60/.75/.90
      *   awvRate/m1Rate/tcmRate(경로포착) .25.30.20 / .45.50.40 / .65.70.60
-     *   dLOS/losReal .2/.40 · .4/.60 · .7/.85 · theta/lambda .10/.10 · .35/.25 · .60/.45
+     *   dLOS/losReal .2/.40 · .4/.60 · .7/.85 · savEp 1088/1209/1640 · theta/lambda .10/.10 · .35/.25 · .60/.45
      *   hccVal/maVbc 200/.30 · 500/.55 · 1000/.75 · cmCase 2000/4000/7000
      *
      * ── 10. 코드 지도 ───────────────────────────────────────────────────────
@@ -125,7 +135,7 @@
      *   COHORTS + AWV_VAL·M1_VAL·TCM_VAL — 경로 청구 단위값. 스택·단가 수정 여기.
      *   COST_KEYS— λ 걸리는 원가 레버. B2 추가 시 등록.
      *   LEVERS   — 8개 레버 표시정보.
-     *   compute()— 핵심 엔진. B1(경로)→B2(haircut→λ→throughput)→B3(θ/maVbc)→net→payback.
+     *   compute()— 핵심 엔진. B1(경로)→B2(haircut→λ→throughput)→B3(selBias→θ/maVbc)→net→payback.
      *              반환 parts에 레버·경로별 값.
      *   App()    — 화면·토글·waterfall·경로카드·경고·입력.  styles — 디자인 토큰.
      *
@@ -163,6 +173,7 @@
      * v3.1  capex/opex 분리 · 병상수/점유율(LOS throughput) · 에피소드 책임구조(θ regime)
      * v3.2  원격케어 코호트 풀스택 · LOS haircut · B3 분리(TM/MA) · APCM↔VBC 게이트
      * v3.3  B1 경로 청구 엔진(W·M1·M2 flow=퇴원수 / M3 stock=panel) · M1↔RCM 경계 분리
+     * v3.5  CMS AHCAH 실측 savEp 밴드 적용 · selBias 보정계수 신설 · B3/LOS IC 방어문구 추가
      *
      * ★ 한 줄 결론: 1차 컷으로 구조는 적정, 숫자는 밴드로만. 어느 레버가 어디서 움직이나를
      *   보는 스크리너로 쓰고, 프라이싱 확정은 [DR] 값 교체 후.
@@ -172,15 +183,15 @@
         const SCEN = {
           cons: { label: "보수", pi: 0.15, margin: 0.45, adher: 0.60, m: 0.20, rcm: 0.005,
             conv: 0.10, avoid: 0.05, dLOS: 0.2, losReal: 0.40, dPen: 0.0005, agRed: 0.10,
-            savEp: 500, theta: 0.10, sSav: 0.10, lambda: 0.10, cmCase: 2000, hccVal: 200, maVbc: 0.30,
+            savEp: 1088, theta: 0.10, sSav: 0.10, lambda: 0.10, cmCase: 2000, hccVal: 200, maVbc: 0.30,
             awvRate: 0.25, m1Rate: 0.30, tcmRate: 0.20 },
           base: { label: "기본", pi: 0.30, margin: 0.60, adher: 0.75, m: 0.45, rcm: 0.010,
             conv: 0.20, avoid: 0.10, dLOS: 0.4, losReal: 0.60, dPen: 0.0015, agRed: 0.20,
-            savEp: 1500, theta: 0.35, sSav: 0.20, lambda: 0.25, cmCase: 4000, hccVal: 500, maVbc: 0.55,
+            savEp: 1209, theta: 0.35, sSav: 0.20, lambda: 0.25, cmCase: 4000, hccVal: 500, maVbc: 0.55,
             awvRate: 0.45, m1Rate: 0.50, tcmRate: 0.40 },
           aggr: { label: "공격", pi: 0.50, margin: 0.72, adher: 0.90, m: 0.70, rcm: 0.018,
             conv: 0.35, avoid: 0.15, dLOS: 0.7, losReal: 0.85, dPen: 0.0030, agRed: 0.35,
-            savEp: 3000, theta: 0.60, sSav: 0.35, lambda: 0.45, cmCase: 7000, hccVal: 1000, maVbc: 0.75,
+            savEp: 1640, theta: 0.60, sSav: 0.35, lambda: 0.45, cmCase: 7000, hccVal: 1000, maVbc: 0.75,
             awvRate: 0.65, m1Rate: 0.70, tcmRate: 0.60 },
         };
 
@@ -233,7 +244,7 @@
           capex: 8, opexFixed: 2.0, opexPerPt: 60,
         };
 
-        function compute(p, lv, inp, regime, lambdaOverride) {
+        function compute(p, lv, inp, regime, lambdaOverride, selBiasOverride) {
           const tm = inp.tmPct / 100, ma = 1 - tm, aco = inp.acoShare / 100, occ = inp.occ / 100;
           const partA = inp.partA * 1e6, selfPay = inp.selfPay * 1e6, agency = inp.agency * 1e6;
 
@@ -274,7 +285,9 @@
 
           // ── B3: VBC 분리 ──
           const rmultEff = apcmActive ? Math.max(REGIME[regime].mult, 0.5) : REGIME[regime].mult; // APCM↔VBC 게이트
-          const b3_tm = lv.value ? inp.discharges * tm * aco * p.savEp * p.theta * rmultEff : 0;
+          const selBias = selBiasOverride != null ? selBiasOverride : 0.90;
+          const cmsSavingsPool = lv.value ? inp.discharges * tm * aco * p.savEp : 0;
+          const b3_tm = cmsSavingsPool * selBias * p.theta * rmultEff;
           const b3_ma = lv.value ? (inp.panel * ma) * p.hccVal * p.maVbc : 0;
           const b3 = b3_tm + b3_ma;
 
@@ -287,9 +300,9 @@
           const capUtil = inp.discharges / capMax;
 
           return {
-            parts: { telecare, clawback, rcm, selfpayConv, c_selfpay, c_los, c_hrr, c_agency, couplingGain, throughput, b3_tm, b3_ma, w, m1, m2, m3 },
+            parts: { telecare, clawback, rcm, selfpayConv, c_selfpay, c_los, c_hrr, c_agency, couplingGain, throughput, b3_tm, b3_ma, cmsSavingsPool, w, m1, m2, m3 },
             b1, b2, b3, b3_tm, b3_ma, gross, opex, capex, net, payback,
-            onCount, couplingScale, occGate, capUtil, rmultEff, apcmActive, netPMPM, enrolled, teleGrossAll,
+            onCount, couplingScale, occGate, capUtil, rmultEff, apcmActive, netPMPM, enrolled, teleGrossAll, selBias,
             apcmFloor: apcmActive && REGIME[regime].mult < 0.5 && lv.value,
             pepperCapped: inp.pepper > 80 && lv.rcm,
           };
@@ -301,6 +314,7 @@
           const [cur, setCur] = useState("USD");
           const [fx] = useState(1350);
           const [lambda, setLambda] = useState(SCEN.base.lambda);
+          const [selBias, setSelBias] = useState(0.90);
           const [showInputs, setShowInputs] = useState(false);
           const [showStack, setShowStack] = useState(false);
           const [inp, setInp] = useState(DEFAULT_INPUTS);
@@ -310,12 +324,12 @@
           });
 
           const pickScen = (s) => { setScen(s); setLambda(SCEN[s].lambda); };
-          const R = useMemo(() => compute(SCEN[scen], lv, inp, regime, lambda), [scen, lv, inp, regime, lambda]);
+          const R = useMemo(() => compute(SCEN[scen], lv, inp, regime, lambda, selBias), [scen, lv, inp, regime, lambda, selBias]);
           const band = useMemo(() => {
-            const lo = compute(SCEN.cons, lv, inp, regime, SCEN.cons.lambda).net;
-            const hi = compute(SCEN.aggr, lv, inp, regime, SCEN.aggr.lambda).net;
+            const lo = compute(SCEN.cons, lv, inp, regime, SCEN.cons.lambda, selBias).net;
+            const hi = compute(SCEN.aggr, lv, inp, regime, SCEN.aggr.lambda, selBias).net;
             return { lo: Math.min(lo, hi), hi: Math.max(lo, hi) };
-          }, [lv, inp, regime]);
+          }, [lv, inp, regime, selBias]);
 
           const fmt = (usd) => {
             if (cur === "KRW") { const e = (usd * fx) / 1e8; return `${Math.abs(e) >= 100 ? e.toFixed(0) : e.toFixed(1)}억`; }
@@ -356,7 +370,7 @@
 
               <div style={S.header}>
                 <div>
-                  <div style={S.kicker}>CAPTURE × COUPLING · v3.3</div>
+                  <div style={S.kicker}>CAPTURE × COUPLING · v3.5</div>
                   <div style={S.title}>루프 적용 EBITDA 개선 추정모델</div>
                 </div>
                 <div style={S.curToggle}>
@@ -522,6 +536,18 @@
               </div>
 
               <div style={S.card}>
+                <div style={S.cardHead}><Activity size={13} /> selBias 보정계수 (CMS AHCAH → B3 TM)</div>
+                <div style={S.lamRow}>
+                  <input type="range" min="0.70" max="1.00" step="0.01" value={selBias} onChange={(e) => setSelBias(parseFloat(e.target.value))} style={{ flex: 1 }} />
+                  <div style={{ ...S.lamVal, color: "#B39DDB" }}>{selBias.toFixed(2)}</div>
+                </div>
+                <div style={S.lamNote}>
+                  CMS 절감 풀 {fmt(R.parts.cmsSavingsPool)} × selBias × θ×{R.rmultEff.toFixed(2)} → TM shared {fmt(R.parts.b3_tm)}.
+                  기본 0.90은 HCC gap(2.04/2.26≈0.90) 기반 근사입니다. 정식 위험보정이 아니며 point estimate가 아니라 밴드 조정계수입니다.
+                </div>
+              </div>
+
+              <div style={S.card}>
                 <div style={S.cardHead} onClick={() => setShowInputs(!showInputs)}>
                   <span style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Building2 size={13} /> 병원 baseline 입력 {showInputs ? "▲" : "▼"}</span>
                 </div>
@@ -552,8 +578,8 @@
               </div>
 
               <div style={S.footer}>
-                v3.3: B1 경로 청구 엔진(W·M1·M2 flow=퇴원수 / M3 stock=panel) · LOS haircut · B3 분리(TM/MA) · APCM↔VBC 게이트.
-                [DR] 값(적격률·adherence·단위값·m·θ·maVbc·cmCase)은 data-room 확정 전 추정. 경로 청구는 배타규칙·적격률 반영, 이론 최대 아님.
+                v3.5: CMS AHCAH 실측 savEp 밴드(보수 $1,088 / 기본 $1,209 / 공격 $1,640) · selBias 보정계수 · B3 분리(TM/MA) · APCM↔VBC 게이트.
+                B3는 payer 절감 풀이므로 θ·regime 통과 후 병원 EBITDA가 됩니다. LOS 레버는 AHCAH LOS로 정당화하지 않습니다(AHCAH LOS +0.79일).
               </div>
             </div>
           );
@@ -631,7 +657,5 @@
             document.getElementById('root').dataset.mounted = 'true';
             ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
-</head>
-<body id="root" style="margin: 0; padding: 0;">
 </body>
 </html>
