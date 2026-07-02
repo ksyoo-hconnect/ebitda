@@ -1,4 +1,4 @@
-# 루프 적용 EBITDA 개선 추정모델 — 팀 설명서 (v3.5)
+# 루프 적용 EBITDA 개선 추정모델 — 팀 설명서 (v3.6)
 
 이 문서는 코드와 함께 버전관리되는 정식 설명서입니다. 모델 수정 시 README도 함께 갱신하십시오. 버전 번호는 파일명·kicker·헤더·footer 4곳을 일치시킬 것.
 
@@ -22,7 +22,7 @@
 한 줄:
 
 ```text
-ΔEBITDA = B1(payer 게이팅) + B2×(1+λ) + B3(θ·regime / maVbc) − opex
+ΔEBITDA = B1(payer 게이팅) + B2×(1+λ×κ) + B3(selBias×θ·regime / selBias×maVbc) − opex
 ```
 
 capex는 EBITDA 밖, 회수기간에만 반영한다.
@@ -42,8 +42,8 @@ capex는 EBITDA 밖, 회수기간에만 반영한다.
 | 레이어 | 의미 | 예시 | 게이트 | 확실성 |
 | --- | --- | --- | --- | --- |
 | B1 직접수익 | 청구 현금 | 원격케어(경로)·RCM·Self-Pay전환 | payer 게이팅 | 높음 |
-| B2 운영효율 | 원가·throughput | Self-Pay원가·LOS·HRR·Agency | ×(1+λ) | 중간 |
-| B3 가치기반 | 시스템 절감 | VBC(TM shared / MA HCC) | θ·regime/maVbc | 지불구조 종속 |
+| B2 운영효율 | 원가·throughput | Self-Pay원가·LOS·HRR·Agency | LOS/HRR ×(1+λ×κ) | 중간 |
+| B3 가치기반 | 시스템 절감 | VBC(TM shared / MA HCC) | selBias×θ·regime / selBias×maVbc | 지불구조 종속 |
 
 ## 5. B1 경로 청구 엔진 (v3.3 핵심)
 
@@ -76,7 +76,7 @@ throughput: 빈 병상→신규환자, 점유율 게이팅(55%↓ 거의 0, 85%+
 
 ```text
 TM shared savings = 퇴원수 × %TM × ACO귀속 × CMS 절감/에피소드 × selBias × θ × regime배수
-MA HCC·품질       = MA lives × HCC값 × maVbc
+MA HCC·품질       = MA lives × HCC값 × maVbc × selBias
 ```
 
 CMS AHCAH 30일 절감 밴드:
@@ -85,14 +85,28 @@ CMS AHCAH 30일 절감 밴드:
 - 기본: $1,209(볼륨가중 raw)
 - 공격: $1,640(CMS Overall, 25 DRG)
 
-`selBias` 기본 0.90은 HCC gap(2.04/2.26≈0.90)을 이용한 순귀속 근사. 정식 위험보정 point estimate가 아니라 밴드 조정계수다.
+`selBias` 기본 0.90은 HCC gap(2.04/2.26≈0.90)을 이용한 순귀속 근사다. v3.6부터는 TM shared savings뿐 아니라 MA HCC·품질 업사이드에도 적용한다. 자발적 건강관리 의지나 기관 선택편의로 인한 업사이드 착시를 낮추는 보수적 밴드 조정계수이며, 정식 위험보정 point estimate는 아니다.
 
 IC 방어: B3는 payer 절감 풀이지 병원 EBITDA가 아니다. 반드시 `θ·regime`을 통과해야 한다.  
 IC 방어: LOS 레버를 AHCAH 데이터로 정당화하지 말 것. AHCAH LOS는 오히려 +0.79일.
 
 ## 8. λ·θ·regime — 오해 방지
 
-`λ`(원가 시너지): 원가 레버 함께 켜면 각자 합보다 더 나오는 부분. 2개↑ ON에서만 작동(`λ × (ON−1)/3`). 파일럿 실측으로 증명, point 아닌 밴드.
+`λ`(원가 시너지): 원가 레버 함께 켜면 각자 합보다 더 나오는 부분. 2개↑ ON에서만 작동한다.
+
+`κ`(케어 밀도): 원격케어가 켜졌을 때 LOS 단축과 HRR 재입원 절감의 교차 시너지를 조절한다. 기존 선형 스케일(`min(π/0.50, 1)`) 대신 `π=30%`를 inflection으로 둔 S-curve를 사용한다. 등록전환율이 낮을 때는 시너지를 거의 인정하지 않고, 30%를 넘어서면서 케어 매니지먼트 밀도가 빠르게 올라가며, 50% 근방에서 1에 수렴한다.
+
+```text
+λ·κ 커플링 = (LOS 절감 + HRR 절감) × λ × cost조합스케일 × κ
+```
+
+대표 κ 값:
+
+- 보수 `π=15%` → `κ≈0.026`
+- 기본 `π=30%` → `κ≈0.504`
+- 공격 `π=50%` → `κ=1.000`
+
+파일럿 실측으로 증명해야 하며, point estimate가 아니라 밴드다.
 
 `θ×regime`: LOS 절감은 즉시 회수(DRG), post-acute·총비용 절감은 에피소드 책임구조에서만.
 
@@ -113,6 +127,7 @@ APCM↔VBC 게이트: 원격케어(APCM) 켜면 순수 FFS라도 `θ` 0.5 floor.
 | dLOS/losReal | .2/.40 | .4/.60 | .7/.85 |
 | savEp | 1088 | 1209 | 1640 |
 | theta/lambda | .10/.10 | .35/.25 | .60/.45 |
+| kappa(S-curve, derived from pi) | ≈.026 | ≈.504 | 1.000 |
 | hccVal/maVbc | 200/.30 | 500/.55 | 1000/.75 |
 | cmCase | 2000 | 4000 | 7000 |
 
@@ -123,7 +138,7 @@ APCM↔VBC 게이트: 원격케어(APCM) 켜면 순수 FFS라도 `θ` 0.5 floor.
 - `COHORTS` + `AWV_VAL`·`M1_VAL`·`TCM_VAL` — 경로 청구 단위값. 스택·단가 수정 여기.
 - `COST_KEYS` — λ 걸리는 원가 레버. B2 추가 시 등록.
 - `LEVERS` — 8개 레버 표시정보.
-- `compute()` — 핵심 엔진. B1(경로)→B2(haircut→λ→throughput)→B3(selBias→θ/maVbc)→net→payback. 반환 `parts`에 레버·경로별 값.
+- `compute()` — 핵심 엔진. B1(경로)→B2(haircut→λ×κ→throughput)→B3(selBias→θ/maVbc)→net→payback. 반환 `parts`에 레버·경로별 값.
 - `App()` — 화면·토글·waterfall·경로카드·경고·입력.
 - `styles` — 디자인 토큰.
 
@@ -142,6 +157,8 @@ APCM↔VBC 게이트: 원격케어(APCM) 켜면 순수 FFS라도 `θ` 0.5 floor.
 
 - [ ] 순수 FFS에서 B3(TM) 거의 죽고, telecare 켜면 θ 0.5 floor 뜨나?
 - [ ] cost 레버 1개만 켜면 λ=0인가?
+- [ ] telecare OFF 또는 π 낮은 시나리오에서 κ가 LOS/HRR 시너지를 보수적으로 낮추는가?
+- [ ] selBias를 낮추면 TM shared savings와 MA HCC·품질 업사이드가 함께 줄어드는가?
 - [ ] 점유율 50%↓에서 throughput=0인가?
 - [ ] PEPPER>80에서 RCM 반토막·경고 뜨나?
 - [ ] 퇴원수 올리면 W·M1·M2(flow) 함께 커지나?
@@ -150,7 +167,7 @@ APCM↔VBC 게이트: 원격케어(APCM) 켜면 순수 FFS라도 `θ` 0.5 floor.
 ## 12. 알려진 한계 & 다음 버전
 
 - 파라미터 절반이 [DR]/[ASS] 추정 → 이 도구는 point estimate가 아니라 밴드·구조 스크리너. data-room 열리면 실청구·실LOS·실점유로 교체.
-- λ는 근사(단일모듈도 완전히 깨끗하진 않음) → 신뢰구간으로.
+- λ·κ는 근사(단일모듈도 완전히 깨끗하진 않음) → 신뢰구간으로.
 - regime 단일 선택 → 실제는 TM-ACO·MA blend. v3.4 후보: TM 볼륨의 ACO/TEAM 편입률 분리.
 - 경로 청구 적격률(AWV 연1회·TCM 30일 1회·배타규칙)이 이론최대와 실현치의 갭 → 실데이터 검증.
 
@@ -159,7 +176,7 @@ APCM↔VBC 게이트: 원격케어(APCM) 켜면 순수 FFS라도 `θ` 0.5 floor.
 EBITDA(감가상각 전 영업이익) · capex/opex(구축비/운용비) · DRG(입원 정액지불)  
 HRRP(재입원 페널티 최대3%, TM) · MSPB/ACO(환자당 총지출/공유절감)  
 TEAM(2026 의무 번들) · APCM(월 번들 1차진료 관리, VBC 관문) · TCM(퇴원 전이케어)  
-AWV(연차건강검진) · PEPPER(코딩 outlier 리포트) · λ(원가 시너지 배수) · θ(회수율)  
+AWV(연차건강검진) · PEPPER(코딩 outlier 리포트) · λ(원가 시너지 배수) · κ(케어 밀도 S-curve) · θ(회수율)  
 m(MA 원격 회수율) · maVbc(MA 가치기반 회수율)
 
 ## 변경 이력
@@ -169,6 +186,7 @@ m(MA 원격 회수율) · maVbc(MA 가치기반 회수율)
 - v3.2 원격케어 코호트 풀스택 · LOS haircut · B3 분리(TM/MA) · APCM↔VBC 게이트
 - v3.3 B1 경로 청구 엔진(W·M1·M2 flow=퇴원수 / M3 stock=panel) · M1↔RCM 경계 분리
 - v3.5 CMS AHCAH 실측 savEp 밴드 적용 · selBias 보정계수 신설 · B3/LOS IC 방어문구 추가
+- v3.6 κ S-curve(π 30% inflection) 적용 · selBias를 MA HCC·품질에도 확장
 
 ## 한 줄 결론
 
