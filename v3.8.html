@@ -459,6 +459,32 @@
           totalEconomicImpact: ["Y5 run-rate와 B4를 합친 총 경제효과입니다.", "Y5 Total impact 카드에 반영됩니다."],
         };
 
+        const FORMULA_VAR_HELP = {
+          abs: "절댓값 함수", ceil: "올림 함수", floor: "내림 함수", max: "최댓값 함수", min: "최솟값 함수", pow: "거듭제곱 함수", round: "반올림 함수",
+          aco: "ACO 귀속 TM 비율(0~1)", addlDischarges: "LOS 단축으로 수용 가능한 추가 퇴원수", admissionConv: "panel 확장이 입원으로 전환되는 비율(%)", adher: "기본 원격케어 유지율", agRed: "Agency labor 절감률", agency: "Agency labor 비용($)", alpha: "Loop 귀속률",
+          avgLOS: "평균 재원일수", avoid: "Self-Pay 원가회피율", awvRate: "W wellness/AWV 포착률", AWV_VAL: "W wellness/AWV 단위값($150)", b0: "B0 volume expansion 합계", b0Active: "B0 적용 연도 플래그", b0Local: "점유율 회복 기반 B0", b0Panel: "panel 활성화 기반 B0",
+          addrDisch: "LOS 단축 대상 퇴원수", b1: "B1 Direct Revenue 합계", b2: "B2 Cost Efficiency 합계", b3: "B3 Value-Based 합계", b3_ma: "MA HCC·품질 업사이드", b3_tm: "TM shared savings", b4: "B4 RHTP recurring support",
+          b4Y5: "Y5의 B4 recurring support", baseRhtpRamp: "기본 RHTP ramp 배열의 해당 연도값", baseVolumeRamp: "기본 volume ramp 배열의 해당 연도값", baselineDischarges: "baseline 연간 퇴원수", baselineGrossChargesM: "baseline gross charges($M)", baselineOcc: "baseline 점유율(%)", baselinePanel: "baseline 외래/활성 panel", baselinePanelSafe: "0 나눗셈 방지용 baseline panel", baselinePartA: "baseline Medicare TM Part A($)",
+          capex: "Loop 구축비($M)", c_agency: "Agency labor 절감액", c_hrr: "HRR 페널티 회피액", c_los: "LOS 변동비 절감액", c_selfpay: "Self-Pay 원가회피액", clawback: "ACO 음결합 차감액", cmCase: "추가 입원 1건당 contribution margin", cmsSavingsPool: "TM VBC 절감 풀", commercial: "Commercial payer 비율(0~1)", conv: "Self-Pay 전환율", costBase: "B2 기본 원가절감 합계", couplingGain: "λ·κ 커플링 추가효과", couplingScale: "원가 레버 조합×케어밀도 스케일", cumulative: "5개년 누적 순ΔEBITDA", currentRealization: "현재 실현율(%)",
+          discharges: "연간 퇴원수", dLOS: "LOS 단축 일수", dPen: "HRRP 페널티 감소율", dynamicNet: "연도별 순ΔEBITDA(staticNet+B0)", effAdher: "IRS+ 반영 후 유지율", effM1Rate: "IRS+ 반영 후 M1 포착률", effPi: "IRS+ 반영 후 M3 등록전환율", effTcmRate: "IRS+ 반영 후 TCM 포착률", enrolled: "M3 등록 panel", enrolledTelecare: "원격케어 ON일 때 opex 대상 등록자 수",
+          gross: "B1+B2+B3 총 개선액", grossChargeFlag: "grossCharges가 있을 때 1", grossCharges: "연간 gross charges($)", grossFallbackFlag: "grossCharges가 없을 때 fallback 플래그", growthLocal: "점유율 회복 기반 성장률", growthPanel: "panel→입원 전환 성장률",
+          hccVal: "MA HCC/품질 1인당 가치", hrrBasePartA: "HRR/RCM 기준 Part A($)", irsActive: "IRS+ 레버 ON=1/OFF=0", irsActivatedPatients: "IRS+ 생성 및 앱 가입 환자 수", irsActivationRate: "IRS+ 생성/가입률(%)", irsAdherLift: "IRS+ 유지율 uplift(pp)", irsCost: "IRS+ activation 총비용", irsCostPer: "IRS+ 1인당 원가($)", irsEligiblePatients: "IRS+ 대상 환자 수", irsEligibleRate: "M1 IRS+ 대상 비중(%)", irsM1Lift: "IRS+ M1 포착률 uplift(pp)", irsPiLift: "IRS+ 등록전환율 uplift(pp)", irsTcmLift: "IRS+ TCM 포착률 uplift(pp)",
+          lambda: "원가 시너지 계수 λ", localGrowthMax: "목표 점유율까지 회복 가능한 최대 local growth", losAddr: "LOS 단축 대상 퇴원 비중(%)", losEligible: "LOS 적용 payer 비중(TM+Medicaid)", losReal: "LOS 절감 실현율", m: "MA 원격케어 회수율", M1_VAL: "M1 외래/triage 단위값($400)", m1: "M1 외래·triage 금액", m1Rate: "기본 M1 포착률", ma: "Medicare Advantage 비율(0~1)", maVbc: "MA VBC 회수율", margin: "자동화/운영 후 순마진", medicaid: "Medicaid 비율(0~1)", mk: "Medicaid 원격 회수율", m2: "M2 입원·처치·회복 금액", m3: "M3 Loop 회복관리 금액",
+          net: "연간 순 ΔEBITDA", netInvestment: "RHTP offset 차감 후 투자액", netPMPM: "M3 1인당 월 순수익", npv: "5개년 NPV 합계", occGate: "점유율 기반 throughput 실현 gate", occTarget: "목표 점유율(%)", opex: "Loop 운영비+IRS+ 비용", opexFixed: "연간 고정 운영비($M)", opexPerPt: "등록 환자당 연간 운영비($)",
+          panel: "외래/활성 panel", panelElasticity: "점유율 성장에 따른 panel 탄성", panelExpansion: "target까지 늘어난 panel 수", partA: "Medicare TM Part A 기준액($)", pepperCap: "PEPPER audit cap", pi: "기본 M3 등록전환율", rcm: "최종 RCM·CDI 개선액", rcmAlpha: "RCM 개선 귀속률", rcmBase: "RCM 기준액", rcmGap: "목표-현재 실현율 갭", rcmRate: "RCM fallback 개선율", rcmTarget: "목표 실현율(%)", rhtpOffset: "RHTP capex offset($M)", rhtpRamp: "해당 연도 RHTP ramp", rhtpRecurring: "RHTP recurring 지원금($M/yr)", rmultEff: "regime 반영 후 VBC 회수 배수",
+          sSav: "ACO 음결합률", savEp: "TM 에피소드당 절감액", selBias: "선택편의/위험보정 보수계수", selfPay: "Self-Pay at-risk 금액($)", selfpayConv: "Self-Pay 전환 직접수익", staticNet: "해당 연도 B1+B2+B3-opex", synergyBase: "λ·κ가 적용되는 LOS+HRR 기반액", targetPanel: "목표 활성 panel", TCM_VAL: "M2 TCM 단위값($230)", telecare: "payer 적용 후 journey 회수액", teleCommercial: "Commercial journey 회수액", teleGrossAll: "M1+M2+M3+W payer 적용 전 합계", teleMA: "MA journey 회수액", teleMedicaid: "Medicaid journey 회수액", teleTM: "TM journey 회수액", theta: "TM shared savings 회수율", throughput: "병상 여유 신규환자 전환 margin", tm: "Medicare TM 비율(0~1)", totalEconomicImpact: "Y5 net+B4 총 경제효과", totalGrowth: "총 볼륨 성장률",
+          tcmRate: "기본 M2/TCM 포착률", varCostDay: "입원 1일당 변동비", volumeRamp: "해당 연도 도입/확산 ramp", w: "W wellness 관문 금액", weightedGross: "M3 코호트 가중 월 gross", year: "동적 모델 연도(1~5)", year2Flag: "Y2 이후면 1, Y1이면 0", yearDischarges: "해당 연도 퇴원수", yearGrossCharges: "해당 연도 gross charges($)", yearOcc: "해당 연도 점유율(%)", yearPanel: "해당 연도 panel", yearPartA: "해당 연도 Part A($)", y5Net: "Y5 순ΔEBITDA"
+        };
+
+        function formulaVarSummary(key, formulas) {
+          const expr = String((formulas && formulas[key]) || FORMULA_DEFAULTS[key] || "");
+          const fnNames = new Set(["abs", "ceil", "floor", "max", "min", "pow", "round"]);
+          const vars = Array.from(new Set((expr.match(/[A-Za-z_][A-Za-z0-9_]*/g) || [])
+            .filter((name) => name !== key && !fnNames.has(name) && Number.isNaN(Number(name)))));
+          if (!vars.length) return "상수 또는 ramp 기본값만 사용합니다.";
+          return vars.map((name) => `${name}: ${FORMULA_VAR_HELP[name] || "내부 계산 변수"}`).join(" · ");
+        }
+
         const clamp01 = (x) => Math.max(0, Math.min(1, x));
         const clampPct = (x) => Math.max(0, Math.min(100, Number.isFinite(x) ? x : 0));
         function safeEvalFormula(name, formulas, vars, errors, fallbackExpr) {
@@ -1263,6 +1289,7 @@
                                 {FORMULA_HELP[meta.key] && (
                                   <div style={S.formulaHelp}>
                                     <span style={S.formulaHelpLabel}>의미</span> {FORMULA_HELP[meta.key][0]}<br />
+                                    <span style={S.formulaHelpLabel}>변수</span> {formulaVarSummary(meta.key, formulas)}<br />
                                     <span style={S.formulaHelpLabel}>반영</span> {FORMULA_HELP[meta.key][1]}
                                   </div>
                                 )}
