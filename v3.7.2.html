@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loop EBITDA Model v3.8</title>
+    <title>Loop EBITDA Model v3.7.2</title>
 </head>
 <body style="margin: 0; padding: 0; background: #0d1017;">
     <div id="root"></div>
@@ -61,7 +61,7 @@
 
         // (위 설명서 헤더가 여기 위치)
     /* ============================================================================
-     * 루프 적용 EBITDA 개선 추정모델 — 팀 설명서 (v3.8)
+     * 루프 적용 EBITDA 개선 추정모델 — 팀 설명서 (v3.7.2)
      * ============================================================================
      * 이 헤더는 코드와 함께 버전관리되는 정식 문서입니다. 모델 수정 시 이 헤더도
      * 함께 갱신하십시오. 버전 번호는 파일명·kicker·이 헤더·footer 4곳을 일치시킬 것.
@@ -90,8 +90,8 @@
      * (2) λ는 B2(원가)에만. 원가 레버 간 상호작용(초가법성)만. 매출·가치층 금지.
      * (3) θ는 B3의 TM shared savings에만. DRG 고정 원가(LOS)는 100% 회수라 θ 불필요.
      * (4) 케어 인건비는 한 번만. 원격케어 margin에 이미 반영 → opex 환자당은 플랫폼 몫만.
-     * (5) journey 이중계상 방지: M1 외래/triage 수익 ↔ RCM(Part A DRG)은 별개 stream.
-     *     M3(APCM/RPM)와 W(AWV/스크리닝)는 월반복·연1회 관문으로 중복 청구하지 않는다.
+     * (5) 경로 청구 이중계상 두 곳: M1(입원 Part B) ↔ RCM(Part A DRG)은 별개 stream.
+     *     W(AWV) → M3(APCM)은 순차지 중복 아님.
      * ★ 새 레버 추가 시 반드시 이 다섯에 비춰 검토.
      *
      * ── 4. 3개 레이어 ───────────────────────────────────────────────────────
@@ -99,17 +99,13 @@
      * B2 운영효율  | 원가·throughput | Self-Pay원가·LOS·HRR·Agency    | LOS/HRR ×(1+λ×κ) | 중간
      * B3 가치기반  | 시스템 절감      | VBC(TM shared / MA HCC)        | selBias×θ·regime / selBias×maVbc | 지불구조 종속
      *
-     * ── 5. B1 Patient Journey Engine (v3.8) ───────────────────────────────
-     * v3.8부터 W/M1/M2/M3 자체를 인바이츠 루프 patient journey에 정합시킨다.
-     *   M1 외래 진입·triage = 내원/접수/진료 + IRS+ 생성 + 앱 activation
-     *   M2 입원·처치·회복   = 입원/수술/처치/병상 회복 + 퇴원 전이 준비
-     *   M3 퇴원후 회복·Loop = 통원·원격케어·APCM/RPM 월 반복 관리
-     *   W  wellness 복귀    = 회복 후 AWV·스크리닝·재발방지·APCM 재진입 관문
-     * 계산식도 journey 의미에 맞춘다:
-     *   M1 외래/triage  = 외래 panel × M1포착률 × $400 × margin
-     *   M2 acute care   = 퇴원수 × TCM적격률 × $230 × margin
-     *   M3 Loop care    = 등록panel(panel×π) × netPMPM × 12
-     *   W  wellness     = panel × AWV포착률 × $150 × margin
+     * ── 5. B1 경로 청구 엔진 (v3.3 핵심) ────────────────────────────────────
+     * 원격케어는 단일 PMPM이 아니라 환자 경로 전 구간 청구. 모수가 둘로 갈림:
+     *   W  예방·관문  = panel × AWV포착률 × $150 × margin      (flow; APCM 개시 관문)
+     *   M1 입원 PartB = 퇴원수 × $400 × 포착률 × margin         (flow; RCM=Part A와 별개)
+     *   M2 퇴원후 TCM = 퇴원수 × TCM적격률 × $230 × margin       (flow; 99495/96, 30일 1회)
+     *   M3 종단       = 등록panel(panel×π) × netPMPM × 12       (stock; APCM·RPM 코호트 스택)
+     * W·M1·M2는 퇴원수(flow), M3만 등록 panel(stock)에 연동 → 볼륨·throughput 늘면 B1 증가.
      * 합계에 payer 스플릿(TM×1 / MA×m / Medicaid×mk / Commercial×0) + ACO 음결합 차감.
      * M3 코호트 스택: 만성(APCM L2+RPM)·QMB복합(L3+RPM+BHI)·행동건강(+CoCM)·경증(L1).
      * 가중 gross ~$181/월 × margin × adherence. 배타규칙(APCM↔CCM·PCM·TCM)이라 18코드 합 아님.
@@ -150,7 +146,7 @@
      * ── 10. 코드 지도 ───────────────────────────────────────────────────────
      *   SCEN     — 3-tier 파라미터. 숫자 튜닝은 여기.
      *   REGIME   — 책임구조 4종·θ배수. 지불모델 추가는 여기.
-     *   COHORTS + AWV_VAL·M1_VAL·TCM_VAL — journey 단위값. 스택·단가 수정 여기.
+     *   COHORTS + AWV_VAL·M1_VAL·TCM_VAL — 경로 청구 단위값. 스택·단가 수정 여기.
      *   COST_KEYS— λ 걸리는 원가 레버. B2 추가 시 등록.
      *   LEVERS   — 8개 레버 표시정보.
      *   compute()— 핵심 엔진. B1(경로)→B2(haircut→λ×κ→throughput)→B3(selBias→θ/maVbc)→net→payback.
@@ -190,14 +186,13 @@
      * v3.0  Capture×Coupling 2축 엔진 (payer×service 4-quadrant를 Capture 벡터로 흡수)
      * v3.1  capex/opex 분리 · 병상수/점유율(LOS throughput) · 에피소드 책임구조(θ regime)
      * v3.2  원격케어 코호트 풀스택 · LOS haircut · B3 분리(TM/MA) · APCM↔VBC 게이트
-     * v3.3  legacy B1 경로 청구 엔진(W·M1·M2 flow / M3 stock=panel) · M1↔RCM 경계 분리
+     * v3.3  B1 경로 청구 엔진(W·M1·M2 flow=퇴원수 / M3 stock=panel) · M1↔RCM 경계 분리
      * v3.5  CMS AHCAH 실측 savEp 밴드 적용 · selBias 보정계수 신설 · B3/LOS IC 방어문구 추가
      * v3.5.1 반응형 웹 레이아웃 적용(모바일 1컬럼 / 데스크톱 2컬럼)
      * v3.6  κ S-curve(π 30% inflection) 적용 · selBias를 MA HCC·품질에도 확장
      * v3.7  payer mix(TM/MA/Medicaid/Commercial) 명시 분리 · Medicaid mk=0.10 적용
      * v3.7.1 핵심 계산식 수동 편집 패널 추가 · 오류 시 기본식 fallback
      * v3.7.2  5개년 동적 확산 · B0 Volume Expansion · B4 RHTP · RCM 실현율 갭
-     * v3.8    Patient Journey 정합 · IRS+ M1 activation ROI 레버
      *
      * ★ 한 줄 결론: 1차 컷으로 구조는 적정, 숫자는 밴드로만. 어느 레버가 어디서 움직이나를
      *   보는 스크리너로 쓰고, 프라이싱 확정은 [DR] 값 교체 후.
@@ -236,16 +231,15 @@
         ];
         const WEIGHTED_GROSS = COHORTS.reduce((s, c) => s + c.mix * c.gross, 0);
 
-        // Journey별 단위값($). v3.8은 W/M1/M2/M3 자체를 Loop patient journey에 정합시킨다.
-        const AWV_VAL = 150; // W: wellness/재발방지 관문(AWV + 스크리닝)
-        const M1_VAL = 400;  // M1: 외래 triage/진료/activation 단계에서 포착되는 Part B·관리 수익
-        const TCM_VAL = 230; // M2: acute→퇴원후 TCM 99495/96 (퇴원 후 30일 1회)
+        // 경로 flow 청구 단위값($). W=AWV+스크리닝/명/년, M1=입원당 포착가능 Part B(전문의료), M2=TCM/퇴원건
+        const AWV_VAL = 150; // W: 연차건강검진 + 스크리닝
+        const M1_VAL = 400;  // M1: 입원당 전문의료(Part B) 포착 — RCM(Part A DRG/CMI)과 별개 stream
+        const TCM_VAL = 230; // M2: TCM 99495/96 (퇴원 후 30일 1회)
 
         const COST_KEYS = ["selfpayCost", "los", "hrr", "agency"];
 
         const LEVERS = [
-          { key: "telecare",    layer: "B1", name: "Loop patient journey", sub: "M1 triage→M2 acute→M3 Loop→W wellness", cap: "TM ×1 / MA ×m / Medicaid ×mk / Commercial ×0" },
-          { key: "irs",         layer: "B1", name: "IRS+ M1 activation", sub: "기초검사/유전체 기반 triage + 앱 가입", cap: "직접 환급 0 · M2/M3 포착률 uplift" },
+          { key: "telecare",    layer: "B1", name: "원격케어 (경로 W→M3)", sub: "AWV·Part B·TCM·APCM 전구간 포착", cap: "TM ×1 / MA ×m / Medicaid ×mk / Commercial ×0" },
           { key: "rcm",         layer: "B1", name: "RCM·실현율 갭",  sub: "gross×(목표−현재)×α_rcm",     cap: "PEPPER 상한 · gross=0이면 구식 fallback" },
           { key: "selfpayConv", layer: "B1", name: "Self-Pay 전환",  sub: "보험 적격성 전환",             cap: "×1.0" },
           { key: "selfpayCost", layer: "B2", name: "Self-Pay 원가회피", sub: "대면→비대면 원가 회피",       cap: "×1.0" },
@@ -267,8 +261,6 @@
           tmPct: 35, maPct: 10, medicaidPct: 25, panel: 6000, hrrpRate: 0.55, acoShare: 30, losAddr: 55,
           selfPay: 8, agency: 12, pepper: 60,
           grossCharges: 0, currentRealization: 19, rcmAlpha: 0.30,
-          irsEligibleRate: 35, irsActivationRate: 70, irsCostPer: 180,
-          irsPiLift: 6, irsTcmLift: 8, irsM1Lift: 5, irsAdherLift: 5,
           occTarget: 75, alpha: 0.35, panelTarget: 50000, panelElasticity: 1.3, admissionConv: 5,
           rhtpOffset: 2, rhtpRecurring: 0.5,
           capex: 8, opexFixed: 2.0, opexPerPt: 60,
@@ -298,18 +290,11 @@
           npvInitial: "-netInvestment",
           npvTerm: "dynamicNet / pow(1.10, year)",
           totalEconomicImpact: "y5Net + b4Y5",
-          irsEligiblePatients: "discharges * irsEligibleRate / 100",
-          irsActivatedPatients: "irsEligiblePatients * irsActivationRate / 100 * irsActive",
-          irsCost: "irsActivatedPatients * irsCostPer",
-          effPi: "min(0.90, pi + irsPiLift / 100 * irsActive)",
-          effAdher: "min(0.98, adher + irsAdherLift / 100 * irsActive)",
-          effM1Rate: "min(0.95, m1Rate + irsM1Lift / 100 * irsActive)",
-          effTcmRate: "min(0.95, tcmRate + irsTcmLift / 100 * irsActive)",
-          netPMPM: "weightedGross * margin * effAdher",
-          enrolled: "panel * effPi",
+          netPMPM: "weightedGross * margin * adher",
+          enrolled: "panel * pi",
           w: "panel * awvRate * AWV_VAL * margin",
-          m1: "panel * M1_VAL * effM1Rate * margin",
-          m2: "discharges * effTcmRate * TCM_VAL * margin",
+          m1: "discharges * M1_VAL * m1Rate * margin",
+          m2: "discharges * tcmRate * TCM_VAL * margin",
           m3: "enrolled * netPMPM * 12",
           teleTM: "teleGrossAll * tm",
           teleMA: "teleGrossAll * ma * m",
@@ -332,7 +317,7 @@
           b3_tm: "cmsSavingsPool * selBias * theta * rmultEff",
           b3_ma: "panel * ma * hccVal * maVbc * selBias",
           b3: "b3_tm + b3_ma",
-          opex: "opexFixed * 1000000 + enrolledTelecare * opexPerPt + irsCost",
+          opex: "opexFixed * 1000000 + enrolledTelecare * opexPerPt",
           gross: "b1 + b2 + b3",
           net: "gross - opex",
         };
@@ -355,15 +340,10 @@
           { key: "b0", label: "B0 합계", group: "B0 동적" },
           { key: "netPMPM", label: "M3 net PMPM", group: "B1 경로" },
           { key: "enrolled", label: "등록 panel", group: "B1 경로" },
-          { key: "irsCost", label: "IRS+ activation cost", group: "M1 IRS+" },
-          { key: "effPi", label: "IRS+ 반영 π", group: "M1 IRS+" },
-          { key: "effAdher", label: "IRS+ 반영 adherence", group: "M1 IRS+" },
-          { key: "effM1Rate", label: "IRS+ 반영 M1 포착률", group: "M1 IRS+" },
-          { key: "effTcmRate", label: "IRS+ 반영 TCM 포착률", group: "M1 IRS+" },
-          { key: "m1", label: "M1 외래·triage", group: "B1 경로" },
-          { key: "m2", label: "M2 입원·처치·회복", group: "B1 경로" },
-          { key: "m3", label: "M3 Loop 회복관리", group: "B1 경로" },
-          { key: "w", label: "W wellness 관문", group: "B1 경로" },
+          { key: "w", label: "W 예방·관문", group: "B1 경로" },
+          { key: "m1", label: "M1 입원 Part B", group: "B1 경로" },
+          { key: "m2", label: "M2 퇴원후 TCM", group: "B1 경로" },
+          { key: "m3", label: "M3 종단 관리", group: "B1 경로" },
           { key: "teleTM", label: "TM 원격 회수", group: "payer 회수" },
           { key: "teleMA", label: "MA 원격 회수", group: "payer 회수" },
           { key: "teleMedicaid", label: "Medicaid 원격 회수", group: "payer 회수" },
@@ -526,33 +506,16 @@
           const rcmBase = f("rcmBase", vars);
           vars = { ...vars, rcmBase };
 
-          // ── B1: Patient Journey Engine (M1→M2→M3→W) ──
-          const irsActive = lv.irs ? 1 : 0;
-          vars = { ...vars, irsActive };
-          const irsEligiblePatients = f("irsEligiblePatients", vars);
-          vars = { ...vars, irsEligiblePatients };
-          const irsActivatedPatients = f("irsActivatedPatients", vars);
-          vars = { ...vars, irsActivatedPatients };
-          const irsCost = lv.irs ? f("irsCost", vars) : 0;
-          vars = { ...vars, irsCost };
-          const effPi = f("effPi", vars);
-          vars = { ...vars, effPi };
-          const effAdher = f("effAdher", vars);
-          vars = { ...vars, effAdher };
-          const effM1Rate = f("effM1Rate", vars);
-          vars = { ...vars, effM1Rate };
-          const effTcmRate = f("effTcmRate", vars);
-          vars = { ...vars, effTcmRate };
-
-          const netPMPM = f("netPMPM", vars);      // M3 Loop care 월반복 단가
+          // ── B1: 경로 청구 엔진 (flow: 퇴원수 / stock: panel) ──
+          const netPMPM = f("netPMPM", vars);      // M3 stock 스택 단가
           vars = { ...vars, netPMPM };
           const enrolled = f("enrolled", vars);
           vars = { ...vars, enrolled };
-          const m1 = f("m1", vars);                // M1 외래 진입·triage
-          const m2 = f("m2", vars);                // M2 입원·처치·회복/퇴원전이
-          const w  = f("w", vars);                 // W wellness 복귀·재발방지
+          const w  = f("w", vars);                 // W (flow≈연 panel)
+          const m1 = f("m1", vars);                // M1 (flow: 퇴원수·Part B)
+          const m2 = f("m2", vars);                // M2 (flow: 퇴원수·TCM)
           vars = { ...vars, w, m1, m2 };
-          const m3 = f("m3", vars);                // M3 퇴원후 Loop 회복관리
+          const m3 = f("m3", vars);                // M3 (stock: 등록 panel)
           vars = { ...vars, m3 };
           const teleGrossAll = lv.telecare ? (w + m1 + m2 + m3) : 0;
           vars = { ...vars, teleGrossAll };
@@ -609,7 +572,7 @@
           const b2 = f("b2", vars);
           vars = { ...vars, b2 };
 
-          // ── B3: VBC ──
+          // ── B3: VBC 분리 ──
           const rmultEff = apcmActive ? Math.max(REGIME[regime].mult, 0.5) : REGIME[regime].mult; // APCM↔VBC 게이트
           vars = { ...vars, rmultEff };
           const cmsSavingsPool = lv.value ? f("cmsSavingsPool", vars) : 0;
@@ -636,7 +599,7 @@
           const capUtil = inp.discharges / capMax;
 
           return {
-            parts: { telecare, clawback, rcm, selfpayConv, c_selfpay, c_los, c_hrr, c_agency, couplingGain, throughput, b3_tm, b3_ma, b3_medicaid, b3_commercial, cmsSavingsPool, synergyBase, w, m1, m2, m3, teleTM, teleMA, teleMedicaid, teleCommercial, irsCost, irsEligiblePatients, irsActivatedPatients, effPi, effAdher, effM1Rate, effTcmRate },
+            parts: { telecare, clawback, rcm, selfpayConv, c_selfpay, c_los, c_hrr, c_agency, couplingGain, throughput, b3_tm, b3_ma, b3_medicaid, b3_commercial, cmsSavingsPool, synergyBase, w, m1, m2, m3, teleTM, teleMA, teleMedicaid, teleCommercial },
             b1, b2, b3, b3_tm, b3_ma, gross, opex, capex, net, payback,
             onCount, moduleScale, careKappa, couplingScale, occGate, capUtil, rmultEff, apcmActive, netPMPM, enrolled, teleGrossAll, selBias, mix, losEligible,
             formulaErrors,
@@ -804,7 +767,7 @@
           const [formulas, setFormulas] = useState(FORMULA_DEFAULTS);
           const [inp, setInp] = useState(DEFAULT_INPUTS);
           const [lv, setLv] = useState({
-            telecare: true, irs: true, rcm: true, selfpayConv: true,
+            telecare: true, rcm: true, selfpayConv: true,
             selfpayCost: true, los: true, hrr: true, agency: true, value: true,
           });
 
@@ -828,9 +791,8 @@
           const sign = (v) => (v >= 0 ? "+" : "−");
 
           const items = [];
-          if (lv.telecare) items.push({ label: "Loop patient journey", v: R.parts.telecare, c: LAYER_META.B1.color });
+          if (lv.telecare) items.push({ label: "원격케어 (경로)", v: R.parts.telecare, c: LAYER_META.B1.color });
           if (lv.telecare && R.parts.clawback > 0) items.push({ label: "└ ACO 음결합", v: -R.parts.clawback, c: "#E06C75" });
-          if (lv.irs && R.parts.irsCost > 0) items.push({ label: "IRS+ M1 activation cost", v: -R.parts.irsCost, c: "#E06C75" });
           if (lv.rcm) items.push({ label: "RCM·CDI", v: R.parts.rcm, c: LAYER_META.B1.color });
           if (lv.selfpayConv) items.push({ label: "Self-Pay 전환", v: R.parts.selfpayConv, c: LAYER_META.B1.color });
           if (lv.selfpayCost) items.push({ label: "Self-Pay 원가회피", v: R.parts.c_selfpay, c: LAYER_META.B2.color });
@@ -841,7 +803,7 @@
           if (R.couplingGain > 0) items.push({ label: "λ·κ 커플링", v: R.couplingGain, c: "#FF9F43" });
           if (lv.value && R.parts.b3_tm > 0) items.push({ label: "VBC shared (TM)", v: R.parts.b3_tm, c: LAYER_META.B3.color });
           if (lv.value && R.parts.b3_ma > 0) items.push({ label: "VBC HCC·품질 (MA)", v: R.parts.b3_ma, c: "#8E7CC3" });
-          items.push({ label: "Loop 운용비", v: -(R.opex - R.parts.irsCost), c: "#E06C75" });
+          items.push({ label: "Loop 운용비", v: -R.opex, c: "#E06C75" });
           const maxAbs = Math.max(...items.map((i) => Math.abs(i.v)), 1);
 
           const bLo = Math.min(band.lo, 0), bHi = Math.max(band.hi, R.net, 0);
@@ -860,7 +822,7 @@
 
               <div style={S.header}>
                 <div>
-                  <div style={S.kicker}>PATIENT JOURNEY × CAPTURE × ROI · v3.8</div>
+                  <div style={S.kicker}>CAPTURE × COUPLING × TIME · v3.7.2</div>
                   <div style={S.title}>루프 적용 EBITDA 개선 추정모델</div>
                 </div>
                 <div style={S.curToggle}>
@@ -930,7 +892,7 @@
 
               <div style={S.dynamicHero}>
                 <div>
-                  <div style={S.heroLabel}>5개년 누적 순ΔEBITDA <span style={S.inlineTag}>v3.8 dynamic</span></div>
+                  <div style={S.heroLabel}>5개년 누적 순ΔEBITDA <span style={S.inlineTag}>v3.7.2 dynamic</span></div>
                   <div style={{ ...S.heroNum, color: "#6d9df7" }}>{sign(DYN.cumulative)}{fmt(Math.abs(DYN.cumulative))}</div>
                   <div style={S.heroMeta}>
                     <span>Y5 run-rate {sign(DYN.y5.net)}{fmt(Math.abs(DYN.y5.net))}</span><span style={S.metaDiv}>·</span>
@@ -1020,20 +982,20 @@
                     </div>
                   )}
 
-                  {/* Patient Journey Engine M1→M2→M3→W */}
+                  {/* 경로 청구 엔진 W→M1→M2→M3 */}
                   <div style={S.card}>
                     <div style={S.cardHead} onClick={() => setShowStack(!showStack)}>
                       <span style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-                        <Activity size={13} /> Patient Journey Engine M1→M2→M3→W {showStack ? "▲" : "▼"}
+                        <Activity size={13} /> 경로 청구 엔진 W→M1→M2→M3 {showStack ? "▲" : "▼"}
                       </span>
                     </div>
                     {showStack && (
                       <div>
                         {[
-                          { seg: "M1", name: "외래 진입·triage", code: "IRS+ activation · 앱 가입 · 외래 관리", den: "panel×M1 포착률", v: R.parts.m1 },
-                          { seg: "M2", name: "입원·처치·회복", code: "acute care · 퇴원전이 TCM", den: "퇴원수×TCM 포착률", v: R.parts.m2 },
-                          { seg: "M3", name: "퇴원후 Loop 회복관리", code: "APCM·RPM·BHI·CoCM", den: "등록 panel stock", v: R.parts.m3 },
-                          { seg: "W", name: "wellness 복귀·재발방지", code: "AWV·스크리닝·APCM 재진입", den: "panel×AWV 포착률", v: R.parts.w },
+                          { seg: "W", name: "예방·관문", code: "AWV·스크리닝", den: "flow≈panel", v: R.parts.w },
+                          { seg: "M1", name: "입원 Part B", code: "전문의료 포착", den: "flow: 퇴원수", v: R.parts.m1 },
+                          { seg: "M2", name: "퇴원후 TCM", code: "99495/96 (30일)", den: "flow: 퇴원수", v: R.parts.m2 },
+                          { seg: "M3", name: "종단 관리", code: "APCM·RPM 스택", den: "stock: 등록 panel", v: R.parts.m3 },
                         ].map((r, i) => (
                           <div key={i} style={S.stackRow}>
                             <div style={{ width: 26, fontSize: 11, fontWeight: 800, color: "#4FD1C5", fontFamily: "ui-monospace,monospace", flexShrink: 0 }}>{r.seg}</div>
@@ -1047,9 +1009,8 @@
                         <div style={S.stackFoot}>
                           경로 gross 합 {fmt(R.teleGrossAll)} × payer(TM ×1 / MA ×m / Medicaid ×mk / Commercial ×0) − ACO 음결합 = 실현 원격케어 {fmt(R.parts.telecare - R.parts.clawback)}.
                           세부: TM {fmt(R.parts.teleTM)}, MA {fmt(R.parts.teleMA)}, Medicaid {fmt(R.parts.teleMedicaid)}, Commercial {fmt(R.parts.teleCommercial)}.
-                          IRS+ 적용 {Math.round(R.parts.irsActivatedPatients).toLocaleString()}명 · 비용 {fmt(R.parts.irsCost)} · 유효 π {(R.parts.effPi * 100).toFixed(1)}% · 유효 TCM {(R.parts.effTcmRate * 100).toFixed(1)}% · 유효 유지율 {(R.parts.effAdher * 100).toFixed(1)}%.
-                          M1은 외래 panel, M2는 퇴원수, M3는 등록 panel stock, W는 wellness panel에 연동됩니다. M3 스택 net PMPM {fmt(R.netPMPM)}.
-                          IRS+ 자체 환급은 0으로 두고, M1 activation이 M2 TCM 포착률·M3 등록전환/유지율을 높이는 효과만 ROI에 반영합니다.
+                          flow(W·M1·M2)는 퇴원수에 연동 → 볼륨·throughput과 함께 증가. stock(M3)은 등록 panel×π. M3 스택 net PMPM {fmt(R.netPMPM)}.
+                          경계: M1=입원 전문의료(Part B), RCM=Part A DRG/CMI → 별개 stream, 이중계상 아님. W(AWV)→M3(APCM)은 순차(관문·월반복), 중복 아님.
                           배타규칙(적격률에 반영): AWV 연1회·TCM 퇴원후 30일 1회·APCM↔TCM 동월 배타.
                         </div>
                       </div>
@@ -1069,7 +1030,6 @@
                           const on = lv[x.key];
                           const val = x.key === "value" ? R.parts.b3_tm + R.parts.b3_ma
                             : x.key === "telecare" ? R.parts.telecare - R.parts.clawback
-                            : x.key === "irs" ? -R.parts.irsCost
                             : x.key === "rcm" ? R.parts.rcm
                             : x.key === "selfpayConv" ? R.parts.selfpayConv
                             : x.key === "selfpayCost" ? R.parts.c_selfpay
@@ -1138,10 +1098,6 @@
                           ["agency", "Agency labor", "$M"], ["pepper", "PEPPER percentile", "p"],
                           ["grossCharges", "Gross charges run-rate", "$M/yr"], ["currentRealization", "현 실현율", "%"],
                           ["rcmAlpha", "α_rcm RCM 귀속률", ""],
-                          ["irsEligibleRate", "M1 IRS+ 대상 비중", "%"], ["irsActivationRate", "IRS+ 생성/가입률", "%"],
-                          ["irsCostPer", "IRS+ 1인당 원가", "$"], ["irsPiLift", "IRS+ π uplift", "pp"],
-                          ["irsTcmLift", "IRS+ TCM uplift", "pp"], ["irsM1Lift", "IRS+ M1 uplift", "pp"],
-                          ["irsAdherLift", "IRS+ 유지율 uplift", "pp"],
                           ["occTarget", "목표 점유율 occT", "%"], ["alpha", "α Loop 귀속률", ""],
                           ["panelTarget", "목표 활성 panel", ""], ["panelElasticity", "panel 탄성", "×"],
                           ["admissionConv", "Specialty→입원 전환", "%"],
@@ -1216,7 +1172,6 @@
               </div>
 
               <div style={S.footer}>
-                v3.8: W/M1/M2/M3를 Loop patient journey에 정합(M1 외래 triage→M2 입원·처치→M3 퇴원후 Loop→W wellness). IRS+는 M1 activation 투자비로 처리하고 직접 환급 0, M2/M3 포착률·유지율 uplift만 ROI에 반영.
                 v3.7.2: v3.7.1 엔진과 계산식 편집 기능을 유지하고 5개년 동적 확산 레이어를 추가. B0 Volume Expansion(점유율 회복 + panel 활성화) · B4 RHTP 분리 · RCM 실현율 갭 방식(gross×gap×α_rcm, gross=0이면 구식 fallback).
                 v3.7.1: 핵심 계산식 수동 편집 패널 추가. 오류가 있는 계산식은 기본식으로 fallback.
                 v3.7: payer mix(TM/MA/Medicaid/Commercial)를 명시 분리. 기본값 TM 35% · MA 10% · Medicaid 25% · Commercial 30%. Medicaid 원격 회수율 mk=0.10, Commercial 계산 0.
