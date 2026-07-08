@@ -398,6 +398,67 @@
           { key: "totalEconomicImpact", label: "Y5 총 경제효과", group: "5개년 최종" },
         ];
 
+        const FORMULA_HELP = {
+          volumeRamp: ["연도별 도입/확산 속도입니다.", "5개년 카드의 Y2~Y5 입력 재계산, B0, cumulative, NPV에 반영됩니다."],
+          rhtpRamp: ["RHTP 지원금이 연도별로 잡히는 비율입니다.", "5개년 카드의 B4 recurring, Total impact, RHTP 표시값에 반영됩니다."],
+          growthLocal: ["점유율 회복/지역 recapture로 생기는 성장률입니다.", "Y2~Y5 퇴원수, Part A, 점유율, B0 Local recapture에 반영됩니다."],
+          panelExpansion: ["baseline panel에서 target panel까지 늘어나는 환자 수입니다.", "Y2~Y5 panel, M1/M3/W, B0 Panel 활성화에 반영됩니다."],
+          growthPanel: ["panel 확장이 입원 볼륨으로 전환되는 성장률입니다.", "Y2~Y5 퇴원수, B0 Panel 활성화, Direct Revenue에 반영됩니다."],
+          totalGrowth: ["local growth와 panel growth를 합친 총 성장률입니다.", "Y2~Y5 퇴원수, Part A, gross charges 재계산에 반영됩니다."],
+          yearDischarges: ["해당 연도 퇴원수입니다.", "M2, LOS, VBC, B0, 5개년 연도 카드에 반영됩니다."],
+          yearPartA: ["해당 연도 Medicare TM Part A 기준액입니다.", "RCM fallback과 동적 연도 입력에 반영됩니다."],
+          yearPanel: ["해당 연도 활성 panel입니다.", "M1, M3, W, MA HCC·품질, 5개년 B1에 반영됩니다."],
+          yearOcc: ["해당 연도 점유율입니다.", "LOS throughput gate와 5개년 B2에 반영됩니다."],
+          yearGrossCharges: ["해당 연도 gross charges입니다.", "RCM 실현율 갭 계산에 반영됩니다."],
+          b0Local: ["점유율 회복으로 생기는 추가 입원 margin입니다.", "5개년 카드의 B0 Volume Expansion에 반영됩니다."],
+          b0Panel: ["panel 활성화가 입원으로 전환되며 생기는 margin입니다.", "5개년 카드의 B0 Volume Expansion에 반영됩니다."],
+          b0Active: ["Y1 비교 가능성을 위해 B0를 켜고 끄는 연도 플래그입니다.", "Y1 B0=0, Y2~Y5 B0 적용 여부에 반영됩니다."],
+          b0: ["B0 Local과 Panel 활성화의 합계입니다.", "5개년 누적 순ΔEBITDA, Y5 run-rate, 연도별 B0 막대에 반영됩니다."],
+          irsCost: ["M1에서 IRS+ 생성/앱 activation에 병원이 부담하는 비용입니다.", "waterfall의 IRS+ cost와 순 ΔEBITDA 차감에 반영됩니다."],
+          effPi: ["IRS+ uplift를 반영한 M3 등록전환율입니다.", "등록 panel, M3 Loop 회복관리, opex 환자수에 반영됩니다."],
+          effAdher: ["IRS+ uplift를 반영한 원격케어 유지율입니다.", "M3 net PMPM과 M3 Loop 회복관리 금액에 반영됩니다."],
+          effM1Rate: ["IRS+ uplift를 반영한 M1 포착률입니다.", "M1 외래·triage 금액과 B1 Direct Revenue에 반영됩니다."],
+          effTcmRate: ["IRS+ uplift를 반영한 M2/TCM 포착률입니다.", "M2 입원·처치·회복 금액과 B1 Direct Revenue에 반영됩니다."],
+          netPMPM: ["M3 등록환자 1명당 월 순수익입니다.", "M3 Loop 회복관리, journey gross, B1 Direct Revenue에 반영됩니다."],
+          enrolled: ["M3 원격케어에 등록된 panel 수입니다.", "M3 Loop 회복관리와 Loop 운용비 환자당 비용에 반영됩니다."],
+          m1: ["외래 진입·triage 단계 수익입니다.", "Patient Journey 카드의 M1, B1 Direct Revenue, waterfall에 반영됩니다."],
+          m2: ["입원·처치·회복/퇴원전이 단계 수익입니다.", "Patient Journey 카드의 M2, B1 Direct Revenue, waterfall에 반영됩니다."],
+          m3: ["퇴원후 Loop 회복관리 월반복 수익입니다.", "Patient Journey 카드의 M3, B1 Direct Revenue, waterfall에 반영됩니다."],
+          w: ["wellness 복귀·재발방지 관문 수익입니다.", "Patient Journey 카드의 W, B1 Direct Revenue, waterfall에 반영됩니다."],
+          teleTM: ["TM payer에서 회수되는 journey 수익입니다.", "payer별 세부값, B1 Direct Revenue에 반영됩니다."],
+          teleMA: ["MA payer에서 회수되는 journey 수익입니다.", "payer별 세부값, B1 Direct Revenue에 반영됩니다."],
+          teleMedicaid: ["Medicaid payer에서 제한적으로 회수되는 journey 수익입니다.", "payer별 세부값, B1 Direct Revenue에 반영됩니다."],
+          teleCommercial: ["Commercial payer 회수액입니다. 기본은 0입니다.", "payer별 세부값과 Commercial 보수 가정에 반영됩니다."],
+          clawback: ["ACO shared savings와 원격케어 청구의 음결합 차감입니다.", "waterfall의 ACO 음결합과 B1 Direct Revenue 차감에 반영됩니다."],
+          rcmGap: ["목표 실현율과 현재 실현율의 차이입니다.", "RCM 기준액과 RCM·CDI 레버에 반영됩니다."],
+          rcmBase: ["gross charges 또는 Part A fallback으로 계산한 RCM upside 기준액입니다.", "RCM·CDI 레버와 B1 Direct Revenue에 반영됩니다."],
+          rcm: ["최종 RCM·CDI 개선액입니다.", "waterfall의 RCM·CDI와 B1 Direct Revenue에 반영됩니다."],
+          selfpayConv: ["Self-Pay 환자 전환으로 생기는 직접수익입니다.", "waterfall의 Self-Pay 전환과 B1 Direct Revenue에 반영됩니다."],
+          b1: ["Direct Revenue 레이어 합계입니다.", "상단 B1 카드, waterfall, 순 ΔEBITDA에 반영됩니다."],
+          c_selfpay: ["Self-Pay 원가회피 금액입니다.", "waterfall의 Self-Pay 원가회피와 B2 Cost Efficiency에 반영됩니다."],
+          addrDisch: ["LOS 단축이 적용되는 대상 퇴원수입니다.", "LOS 변동비 절감과 throughput 계산에 반영됩니다."],
+          c_los: ["LOS 단축으로 줄어드는 변동비입니다.", "waterfall의 LOS 변동비와 B2 Cost Efficiency에 반영됩니다."],
+          c_hrr: ["HRRP 재입원 페널티 회피액입니다.", "waterfall의 HRR과 B2 Cost Efficiency에 반영됩니다."],
+          c_agency: ["Agency labor 절감액입니다.", "waterfall의 Agency Labor와 B2 Cost Efficiency에 반영됩니다."],
+          costBase: ["B2 원가 절감의 기본 합계입니다.", "B2 Cost Efficiency와 λ·κ 커플링의 기반에 반영됩니다."],
+          couplingGain: ["LOS/HRR에 적용되는 λ·κ 시너지입니다.", "waterfall의 λ·κ 커플링과 B2 Cost Efficiency에 반영됩니다."],
+          throughput: ["LOS 단축으로 생긴 병상 여유가 신규환자로 전환된 margin입니다.", "waterfall의 throughput과 B2 Cost Efficiency에 반영됩니다."],
+          b2: ["Cost Efficiency 레이어 합계입니다.", "상단 B2 카드, waterfall, 순 ΔEBITDA에 반영됩니다."],
+          cmsSavingsPool: ["TM VBC shared savings의 원천 절감 풀입니다.", "TM shared savings와 B3 Value-Based에 반영됩니다."],
+          b3_tm: ["TM shared savings 중 병원이 회수하는 금액입니다.", "waterfall의 VBC shared와 B3 Value-Based에 반영됩니다."],
+          b3_ma: ["MA HCC·품질 성과로 생기는 업사이드입니다.", "waterfall의 VBC HCC·품질과 B3 Value-Based에 반영됩니다."],
+          b3: ["Value-Based 레이어 합계입니다.", "상단 B3 카드, waterfall, 순 ΔEBITDA에 반영됩니다."],
+          b4: ["RHTP recurring support입니다.", "5개년 카드의 B4 recurring, Total impact에 반영되며 EBITDA와 분리 표시됩니다."],
+          opex: ["Loop 운영비와 IRS+ activation 비용 합계입니다.", "waterfall의 비용 차감과 순 ΔEBITDA에 반영됩니다."],
+          gross: ["B1+B2+B3의 총 개선액입니다.", "순 ΔEBITDA 계산 직전 gross 개선액에 반영됩니다."],
+          net: ["opex 차감 후 연간 순 ΔEBITDA입니다.", "상단 hero 숫자, waterfall 순 ΔEBITDA, payback에 반영됩니다."],
+          netInvestment: ["RHTP offset 차감 후 실제 투자액입니다.", "5개년 Net investment, payback, NPV에 반영됩니다."],
+          dynamicNet: ["연도별 staticNet+B0 순효과입니다.", "Y1~Y5 카드, cumulative, NPV에 반영됩니다."],
+          npvInitial: ["초기 투자액의 NPV 항입니다.", "NPV@10% 계산에 반영됩니다."],
+          npvTerm: ["각 연도 순효과의 할인현재가치입니다.", "NPV@10% 계산에 반영됩니다."],
+          totalEconomicImpact: ["Y5 run-rate와 B4를 합친 총 경제효과입니다.", "Y5 Total impact 카드에 반영됩니다."],
+        };
+
         const clamp01 = (x) => Math.max(0, Math.min(1, x));
         const clampPct = (x) => Math.max(0, Math.min(100, Number.isFinite(x) ? x : 0));
         function safeEvalFormula(name, formulas, vars, errors, fallbackExpr) {
@@ -1199,6 +1260,12 @@
                                     복원
                                   </button>
                                 </div>
+                                {FORMULA_HELP[meta.key] && (
+                                  <div style={S.formulaHelp}>
+                                    <span style={S.formulaHelpLabel}>의미</span> {FORMULA_HELP[meta.key][0]}<br />
+                                    <span style={S.formulaHelpLabel}>반영</span> {FORMULA_HELP[meta.key][1]}
+                                  </div>
+                                )}
                                 <textarea
                                   value={formulas[meta.key]}
                                   onChange={(e) => setFormulas({ ...formulas, [meta.key]: e.target.value })}
@@ -1325,6 +1392,8 @@
           formulaGroup: { fontSize: 9, color: "#FF9F43", fontWeight: 900, letterSpacing: 0.4, marginTop: 4 },
           formulaCell: { minWidth: 0 },
           formulaCellHead: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 3 },
+          formulaHelp: { background: "#0d1017", border: "1px solid #1a2029", borderRadius: 7, padding: "6px 8px", marginBottom: 5, fontSize: 9, color: "#8792a6", lineHeight: 1.45 },
+          formulaHelpLabel: { display: "inline-block", minWidth: 28, color: "#4FD1C5", fontWeight: 900, fontFamily: "ui-monospace, monospace" },
           formulaTextarea: { width: "100%", minHeight: 44, resize: "vertical", background: "#0d1017", border: "1px solid #232a38", borderRadius: 7, color: "#f0f3f9", padding: "7px 8px", outline: "none", fontSize: 11, lineHeight: 1.35, fontFamily: "ui-monospace, monospace" },
           footer: { fontSize: 9.5, color: "#5b6577", lineHeight: 1.5, marginTop: 8, padding: "0 2px" },
           };
