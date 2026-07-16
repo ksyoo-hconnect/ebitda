@@ -535,8 +535,10 @@
     function cellCalc(site, scope, t, inpSZ, inpBJ, lv, devPartner, kap, succ, oc, formulas = FORMULA_DEFAULTS) {
         const entOK = site === "comb" && scope >= 3;
         const formulaErrors = [];
+        const entBaseActive = lv.b3 || lv.c1 || lv.r1;
         const addedEmp = entOK && lv.r1 ? t.newContracts * ENT.avgEmpPerContract * 0.5 : 0;
-        const spokeEmpTot = entOK ? oc.spokeN * ENT.spokeEmp + addedEmp : 0;  // [v3.1] 전환 스포크 기반
+        const baseSpokeEmp = entOK && entBaseActive ? oc.spokeN * ENT.spokeEmp : 0;
+        const spokeEmpTot = baseSpokeEmp + addedEmp;  // [v3.1] 전환 스포크 기반
         const effEap = spokeEmpTot;
         const c1s = entOK && lv.c1 ? safeEvalFormula("corpScreenFlow", formulas, {
             effectiveEap: effEap,
@@ -585,6 +587,7 @@
         // [v3.1] 스포크 전환 스케줄 (게이트: Y1말 앵커→Y2하 5곳→Y3 대량) — tier별
         const SCHED = t.spokeSched;
         const sites = site === "comb" ? [inpSZ, inpBJ] : [site === "sz" ? inpSZ : inpBJ];
+        const entBaseActive = lv.b3 || lv.c1 || lv.r1;
         const errors = [];
         const churnEff = safeEvalFormula("churnEff", formulas, {
             churn0: t.churn0,
@@ -602,14 +605,15 @@
             const entOK = site === "comb" && yScope >= 3;
             const gf = Math.pow(1 + t.natGrow, y - 1);
             const spokeIdx = seq ? y - 3 : y - 1;              // 순차모드: Y3=스케줄[0](앵커)
-            const scheduleValue = entOK && lv.b3 ? SCHED[Math.max(0, Math.min(spokeIdx, SCHED.length - 1))] : 0;
+            const scheduleValue = entOK && entBaseActive ? SCHED[Math.max(0, Math.min(spokeIdx, SCHED.length - 1))] : 0;
             const spokes = safeEvalFormula("dynSpokes", formulas, {
-                b3Active: lv.b3 ? 1 : 0,
+                b3Active: entBaseActive ? 1 : 0,
                 scheduleValue
             }, errors, FORMULA_DEFAULTS.dynSpokes);
             const prevSpokeIdx = spokeIdx - 1;
-            const prevSpokes = entOK && lv.b3 && y > (seq ? 3 : 1) ? SCHED[Math.max(0, Math.min(prevSpokeIdx, SCHED.length - 1))] : 0;
-            const cumSpokeEmp = spokes * ENT.spokeEmp;
+            const prevSpokes = entOK && entBaseActive && y > (seq ? 3 : 1) ? SCHED[Math.max(0, Math.min(prevSpokeIdx, SCHED.length - 1))] : 0;
+            const reverseLeadEmp = entOK && lv.r1 ? y * t.newContracts * ENT.avgEmpPerContract * 0.5 : 0;
+            const cumSpokeEmp = spokes * ENT.spokeEmp + reverseLeadEmp;
             const c1s = entOK && lv.c1 ? safeEvalFormula("corpScreenFlow", formulas, {
                 effectiveEap: cumSpokeEmp,
                 corpScrPen: t.corpScrPen
@@ -722,7 +726,7 @@
             });
             const b3 = entOK && lv.b3 ? safeEvalFormula("b3Revenue", formulas, {
                 effectiveEap: cumSpokeEmp,
-                eapPen: 1,
+                eapPen: t.eapPen,
                 pepm: t.pepm
             }, errors, FORMULA_DEFAULTS.b3Revenue) : 0;
             const opex = safeEvalFormula("dynLoopOpex", formulas, {
@@ -1076,8 +1080,9 @@
                         const flowIds = ["w2", "r1"];
                         const moneyMembers = members.filter((d) => !flowIds.includes(d.k));
                         const sum = moneyMembers.reduce((a, d) => a + (R.parts[d.k] || 0), 0) * 12;
-                        const anyActive = members.some((d) => !locked(d) && lv[d.k]);
-                        const allActive = members.every((d) => locked(d) || lv[d.k]);
+                        const actionableMembers = members.filter((d) => !locked(d));
+                        const anyActive = actionableMembers.length ? actionableMembers.some((d) => lv[d.k]) : false;
+                        const allActive = actionableMembers.length ? actionableMembers.every((d) => lv[d.k]) : false;
                         const expanded = !!expCl[c.id];
                         const masterToggle = (e) => {
                             e.stopPropagation();
