@@ -410,8 +410,8 @@
         {k: "f1", name: "F1 · 가족 확산", sub: "관리 환자 가구의 가족 검진 유입", cap: "S2 · expat 가족동반 [DR]", grp: "B1", sc: 2, dep: "m3", c: "#E8B07B", cl: "scr"},
         {k: "b3", name: "B3 · 기업 EAP PEPM", sub: "유효분모 × 침투율 × PEPM — 안정화 후 ON", cap: "합산×③ 전용 · 가드레일 12", grp: "B3", sc: 3, ent: true, c: "#9B8BE8", cl: "ent"},
         {k: "w2", name: "W2 · 유소견→M3 전환", sub: "lives 파이프 — 매출 아님", cap: "S2 · M3 스톡으로만 흐름", grp: "분모", sc: 2, dep: "m3", c: "#8A93A8", cl: "denom"},
-        {k: "c1", name: "C1 · 기업→검진 유입", sub: "위탁 리퍼럴 — W2 퍼널 합류", cap: "합산×③ 전용 · 가드레일 12", grp: "분모", sc: 3, ent: true, c: "#B98BD9", cl: "denom"},
-        {k: "r1", name: "R1 · 역방향 리드", sub: "외래환자 소속사 → 신규계약 → 분모↑", cap: "합산×③ 전용 · base-expander", grp: "분모", sc: 3, ent: true, c: "#8AA8C9", cl: "denom"},
+        {k: "c1", name: "C1 · 기업→검진 유입", sub: "위탁 리퍼럴 — W2 퍼널 합류", cap: "합산×③ 전용 · 가드레일 12", grp: "분모", sc: 3, ent: true, c: "#B98BD9", cl: "ent"},
+        {k: "r1", name: "R1 · 역방향 리드", sub: "외래환자 소속사 → 신규계약 → 분모↑", cap: "합산×③ 전용 · base-expander", grp: "분모", sc: 3, ent: true, c: "#8AA8C9", cl: "ent"},
         {k: "rcm", name: "청구성공률 게이트", sub: "청구가 거절 없이 입금되는 비율 — ON=clean-claim 가동", cap: "보험청구성 B1 레버에만 적용", grp: "게이트", sc: 1, c: "#E06C75", cl: "gate"},
     ];
 
@@ -421,8 +421,8 @@
         {id: "m3c", name: "③ 만성관리 코어 ★최대수익", sub: "M3·M3v·Rx·RPM — 저수지 심장"},
         {id: "scr", name: "④ 검진 순환·확산", sub: "W1·X1·W5·F1"},
         {id: "ops", name: "⑤ 운영효율", sub: "코디 자동화·AI 케어매니저"},
-        {id: "ent", name: "⑥ 기업 스포크", sub: "B3 — 가드레일 12: 검증 후 ON"},
-        {id: "denom", name: "⑦ 분모 확장", sub: "lives만 — 매출 아님 (W2·C1·R1)"},
+        {id: "ent", name: "⑥ 기업 스포크", sub: "B3·C1·R1 — 합산×③ 전용"},
+        {id: "denom", name: "⑦ 분모 확장", sub: "lives만 — 매출 아님 (W2)"},
         {id: "gate", name: "⑧ 청구성공률 게이트", sub: "denial 실현율"},
     ];
 
@@ -620,10 +620,17 @@
         const [kap, setKap] = useState({k1: 0, k2: 0});
         const [succ, setSucc] = useState({on: 0.93, off: 0.80});          // 청구성공률 [ASS]
         const [oc, setOc] = useState({fixed: 70000, perSite: 15000, perLife: 3, capex: 2000000, spokeN: 10}); // spokeN=정적 ③셀의 스포크 가정 // Loop opex·capex [ASS]
-        const [showInputs, setShowInputs] = useState(false);
         const [seqMode, setSeqMode] = useState(true); // [v3.3] 순차확장 시나리오 기본 ON
         const [expCl, setExpCl] = useState({m3c: true});
         const [editSite, setEditSite] = useState("sz");
+        const [panelOpen, setPanelOpen] = useState({
+            lever: true,
+            success: true,
+            cost: true,
+            kappa: false,
+            rpm: false,
+            inputs: false,
+        });
         const [lv, setLv] = useState(Object.fromEntries(LEVERS.map((d) => [d.k, !["b3", "c1", "r1"].includes(d.k)])));
         const [inpSZ, setInpSZ] = useState(INP_SZ);
         const [inpBJ, setInpBJ] = useState(INP_BJ);
@@ -641,18 +648,25 @@
 
         const netY = R.net * 12;
         const D = useMemo(() => dynProject(site, scope, T, inpSZ, inpBJ, lv, devPartner, succ, oc, seqMode), [site, scope, T, inpSZ, inpBJ, lv, devPartner, succ, oc, seqMode]);
+        const viewport = useViewport();
+        const isWide = viewport >= 1080;
         const fmt = (v) => Math.abs(v) >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : `$${(v / 1e3).toFixed(0)}K`;
         const sign = (v) => (v >= 0 ? "+" : "−");
         const inp = editSite === "sz" ? inpSZ : inpBJ;
         const setInp = editSite === "sz" ? setInpSZ : setInpBJ;
         const set = (k) => (e) => setInp({...inp, [k]: parseFloat(e.target.value) || 0});
         const clearButtonFocus = (e) => e.currentTarget.blur();
+        const togglePanel = (key) => setPanelOpen((prev) => ({...prev, [key]: !prev[key]}));
+        const activateEnterpriseDomain = () => {
+            if (site !== "comb") setSite("comb");
+            if (scope < 3) setScope(3);
+        };
         const bandLo = Math.min(band.lo, 0), bandHi = Math.max(band.hi, netY, 1);
         const pos = (v) => `${clamp(((v - bandLo) / (bandHi - bandLo)) * 100, 0, 100)}%`;
         const toggle = (k) => setLv({...lv, [k]: !lv[k]});
         const entOK = site === "comb" && scope >= 3;
         const locked = (d) => (d.ent && !entOK) || scope < d.sc || (d.dep && (!lv[d.dep] || scope < LEVERS.find((x) => x.k === d.dep).sc));
-        const S = styles;
+        const S = createStyles(viewport);
         const moneyLevers = LEVERS.filter((d) => d.grp !== "분모" || d.k === "c1");
         const maxAbs = Math.max(...moneyLevers.map((d) => Math.abs(R.parts[d.k] || 0)), 1);
         const grp = {
@@ -670,21 +684,21 @@
             .seg:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(79,209,197,.28);}
             .mx-btn:focus,.mx-btn:focus-visible{outline:none;box-shadow:none;}`}</style>
 
-                <div style={S.header}>
+                <div style={{...S.header, ...S.fullSpan}}>
                     <div>
                         <div style={S.kicker}>CAPTURE × FLYWHEEL · v3.3 · CHINA OUTPATIENT</div>
                         <div style={S.title}>루프 적용 EBITDA 개선 추정모델 — Vista 네트워크</div>
                     </div>
                 </div>
 
-                <div style={S.segRow}>
+                <div style={{...S.segRow, ...S.fullSpan}}>
                     {Object.keys(TIERS).map((s) => (
                         <button key={s} className="seg" onClick={() => setTier(s)} onMouseUp={clearButtonFocus} onTouchEnd={clearButtonFocus} style={{...S.seg, ...(tier === s ? S.segOn : {})}}>{TIERS[s].label}</button>
                     ))}
                 </div>
 
                 {/* 3×3 매트릭스 도메인 */}
-                <div style={S.card}>
+                <div style={{...S.card, ...S.fullSpan}}>
                     <div style={S.cardHead}><Grid3X3 size={13}/> 도메인 매트릭스 — 사이트 × 도입범위 (셀 선택, ΔEBITDA/년)</div>
                     <div style={S.mxGrid}>
                         <div style={S.mxCorner}/>
@@ -713,7 +727,7 @@
                     <div style={S.lamNote}>사이트×③은 비활성 — 기업 네트워크(207k)는 사이트 자산이 아니라 네트워크 자산이라 합산×③에서만 1회 계산 (가드레일 12.5). 기업 레버(B3·C1·R1)는 기본 OFF — 안정화 조건부 (가드레일 12).</div>
                 </div>
 
-                <div style={S.hero}>
+                <div style={{...S.hero, ...(isWide ? S.fullSpan : S.leftPane)}}>
                     <div style={S.heroLabel}>{SITES.find((s) => s.id === site).l} × {SCOPES.find((s) => s.n === scope).l} — 순 ΔEBITDA / 년 (Loop opex 차감 후)</div>
                     <div style={{...S.heroNum, color: netY >= 0 ? "#4FD1C5" : "#E06C75"}}>{sign(netY)}{fmt(Math.abs(netY))}</div>
                     <div style={S.heroMeta}>
@@ -733,18 +747,7 @@
                     </div>
                 </div>
 
-                <div style={S.chips}>
-                    {Object.entries(GRP_META).map(([k, m]) => (
-                        <div key={k} style={{...S.chip, borderColor: m.color + "55"}}>
-                            <div style={{...S.chipDot, background: m.color}}/>
-                            <div style={S.chipName}>{m.name}</div>
-                            <div style={{...S.chipVal, color: m.color}}>{sign(grp[k] * 12)}{fmt(Math.abs(grp[k] * 12))}</div>
-                            <div style={S.chipTag}>{m.tag}</div>
-                        </div>
-                    ))}
-                </div>
-
-                <div style={S.card}>
+                <div style={{...S.card, ...S.leftPane}}>
                     <div style={S.cardHead}><Layers size={13}/> 레버별 기여 / 년 — {SITES.find((s) => s.id === site).l} (클러스터별 — 레버 보드와 동일 구조)</div>
                     {CLUSTERS.map((c) => {
                         const members = LEVERS.filter((d) => d.cl === c.id);
@@ -793,9 +796,23 @@
                     <div style={S.wfNet}><span>순 ΔEBITDA / 년</span><span style={{color: netY >= 0 ? "#4FD1C5" : "#E06C75", fontWeight: 700}}>{sign(netY)}{fmt(Math.abs(netY))}</span></div>
                 </div>
 
-                <div style={S.card}>
-                    <div style={S.cardHead}><Power size={13}/> 레버 ON / OFF — 클러스터별 (탭하면 펼침, 스위치는 클러스터 일괄)</div>
-                    {CLUSTERS.map((c) => {
+                <div style={{...S.chips, ...S.leftPane}}>
+                    {Object.entries(GRP_META).map(([k, m]) => (
+                        <div key={k} style={{...S.chip, borderColor: m.color + "55"}}>
+                            <div style={{...S.chipDot, background: m.color}}/>
+                            <div style={S.chipName}>{m.name}</div>
+                            <div style={{...S.chipVal, color: m.color}}>{sign(grp[k] * 12)}{fmt(Math.abs(grp[k] * 12))}</div>
+                            <div style={S.chipTag}>{m.tag}</div>
+                        </div>
+                    ))}
+                </div>
+
+                <div style={{...S.card, ...S.rightPane}}>
+                    <div style={{...S.cardHead, ...S.panelHead}} onClick={() => togglePanel("lever")}>
+                        <span style={S.panelHeadLabel}><Power size={13}/> 레버 ON / OFF — 클러스터별</span>
+                        <ChevronDown size={13} style={{transform: panelOpen.lever ? "none" : "rotate(-90deg)", transition: "transform .2s"}}/>
+                    </div>
+                    {panelOpen.lever && CLUSTERS.map((c) => {
                         const members = LEVERS.filter((d) => d.cl === c.id);
                         const flowIds = ["w2", "r1"];
                         const moneyMembers = members.filter((d) => !flowIds.includes(d.k));
@@ -805,10 +822,11 @@
                         const expanded = !!expCl[c.id];
                         const masterToggle = (e) => {
                             e.stopPropagation();
-                            const next = !allActive;
+                            if (c.id === "ent" && !entOK) activateEnterpriseDomain();
+                            const next = c.id === "ent" && !entOK ? true : !allActive;
                             const upd = {...lv};
                             members.forEach((d) => {
-                                if (!locked(d)) upd[d.k] = next;
+                                if (!locked(d) || (c.id === "ent" && d.ent)) upd[d.k] = next;
                             });
                             setLv(upd);
                         };
@@ -835,9 +853,14 @@
                                             const active = !lk && lv[d.k];
                                             const v = (R.parts[d.k] || 0) * 12;
                                             const isFlow = flowIds.includes(d.k);
+                                            const clickRow = () => {
+                                                if (d.ent && !entOK) activateEnterpriseDomain();
+                                                if (lk && !d.ent) return;
+                                                toggle(d.k);
+                                            };
                                             return (
                                                 <div key={d.k} className="lv" style={{...S.lever, opacity: lk ? 0.4 : 1, cursor: lk ? "default" : "pointer", paddingLeft: 14}}
-                                                     onClick={() => !lk && toggle(d.k)}>
+                                                     onClick={clickRow}>
                                                     <div style={{...S.toggle, width: 28, height: 15, background: active ? "#2E7D52" : "#232a38"}}>
                                                         <div style={{...S.knob, width: 11, height: 11, transform: active ? "translateX(13px)" : "none"}}/>
                                                     </div>
@@ -859,7 +882,7 @@
                     })}
                 </div>
 
-                <div style={S.card}>
+                <div style={{...S.card, ...S.leftPane}}>
                     <div style={S.cardHead}><Layers size={13}/> 5개년 동적 프로젝션 — {SITES.find((x) => x.id === site).l}</div>
                     <div style={{display: "flex", gap: 6, marginBottom: 10}}>
                         <button className="seg" onClick={() => setSeqMode(true)} style={{...S.segSm, ...(seqMode ? S.segOn : {})}}>순차확장 (Y1외래→Y2검진→Y3기업)</button>
@@ -900,9 +923,12 @@
                         축적에서만. 자연성장 매출은 Loop 귀속에서 제외. {seqMode ? "순차확장: Y1=외래 단독→Y2=검진 추가→Y3=기업 스코프 개시(가드레일 12 조건부, 앵커 스포크부터)." : ""}</div>
                 </div>
 
-                <div style={S.card}>
-                    <div style={S.cardHead}><Layers size={13}/> 청구성공률 (청구가 입금되는 비율) — 레인지 조절</div>
-                    <div style={S.lamRow}>
+                <div style={{...S.card, ...S.rightPane}}>
+                    <div style={{...S.cardHead, ...S.panelHead}} onClick={() => togglePanel("success")}>
+                        <span style={S.panelHeadLabel}><Layers size={13}/> 청구성공률 (청구가 입금되는 비율)</span>
+                        <ChevronDown size={13} style={{transform: panelOpen.success ? "none" : "rotate(-90deg)", transition: "transform .2s"}}/>
+                    </div>
+                    {panelOpen.success && <><div style={S.lamRow}>
                         <input type="range" min="0.85" max="0.99" step="0.01" value={succ.on} onChange={(e) => setSucc({...succ, on: parseFloat(e.target.value)})} style={{flex: 1}}/>
                         <div style={S.lamVal}>{(succ.on * 100).toFixed(0)}%</div>
                     </div>
@@ -914,11 +940,15 @@
                     <div style={S.lamNote}>게이트 OFF (무대책): 신규 코드를 검증 없이 청구할 때의 성공률 [ASS 80%]. 차이 {((succ.on - succ.off) * 100).toFixed(0)}%p가 게이트의 가치 = 연 {fmt(R.rcmAverted * 12)} 방어. 실측(4대 보험사 거절률)이 오면
                         [DR] 교체.
                     </div>
+                    </>}
                 </div>
 
-                <div style={S.card}>
-                    <div style={S.cardHead}><Layers size={13}/> Loop 구축·운영 비용 [v2.6 · ASS]</div>
-                    <div style={S.inputGrid}>
+                <div style={{...S.card, ...S.rightPane}}>
+                    <div style={{...S.cardHead, ...S.panelHead}} onClick={() => togglePanel("cost")}>
+                        <span style={S.panelHeadLabel}><Layers size={13}/> Loop 구축·운영 비용 [v2.6 · ASS]</span>
+                        <ChevronDown size={13} style={{transform: panelOpen.cost ? "none" : "rotate(-90deg)", transition: "transform .2s"}}/>
+                    </div>
+                    {panelOpen.cost && <><div style={S.inputGrid}>
                         {[["fixed", "플랫폼 고정 $/월", "네트워크 1회"], ["perSite", "사이트당 $/월", "×사이트 수"], ["perLife", "M3 인당 $/월", "×스톡"], ["capex", "구축 capex $", "회수기간만"]].map(([k, l, u]) => (
                             <div key={k} style={S.inputCell}>
                                 <label style={S.inputLabel}>{l}</label>
@@ -933,11 +963,15 @@
                         capex {fmt(oc.capex)}는 EBITDA 밖 — 회수 {R.payback === Infinity ? "—" : R.payback.toFixed(0) + "개월"} (가드레일 13). 합산 선택 시 고정비가 2사이트에 분산 — 스케일 경제가 자동 표시. ★ 라이선스료 없음: JV에 루프 판권 현물출자로 대체
                         (JV 정산구조 [PENDING]). ★ opex 인건비는 M3 기본 스톡 운영분 — B2b(AI 증원회피)와 중복 금지.
                     </div>
+                    </>}
                 </div>
 
-                <div style={S.card}>
-                    <div style={S.cardHead}><Link2 size={13}/> κ 교차 리프트 (기본 0 · 실측 전제)</div>
-                    <div style={S.lamRow}>
+                <div style={{...S.card, ...S.rightPane}}>
+                    <div style={{...S.cardHead, ...S.panelHead}} onClick={() => togglePanel("kappa")}>
+                        <span style={S.panelHeadLabel}><Link2 size={13}/> κ 교차 리프트 (기본 0 · 실측 전제)</span>
+                        <ChevronDown size={13} style={{transform: panelOpen.kappa ? "none" : "rotate(-90deg)", transition: "transform .2s"}}/>
+                    </div>
+                    {panelOpen.kappa && <><div style={S.lamRow}>
                         <input type="range" min="0" max="0.30" step="0.01" value={kap.k1} onChange={(e) => setKap({...kap, k1: parseFloat(e.target.value)})} style={{flex: 1}}/>
                         <div style={S.lamVal}>κ₁ {kap.k1.toFixed(2)}</div>
                     </div>
@@ -946,11 +980,15 @@
                         <input type="range" min="0" max="0.30" step="0.01" value={kap.k2} onChange={(e) => setKap({...kap, k2: parseFloat(e.target.value)})} style={{flex: 1}}/>
                         <div style={S.lamVal}>κ₂ {kap.k2.toFixed(2)}</div>
                     </div>
+                    </>}
                 </div>
 
-                <div style={S.card}>
-                    <div style={S.cardHead}><HardDrive size={13}/> RPM 기기 파트너십 · <Cpu size={13}/> AI span</div>
-                    <div className="lv" style={{...S.lever, cursor: "pointer"}} onClick={() => setDevPartner(!devPartner)}>
+                <div style={{...S.card, ...S.rightPane}}>
+                    <div style={{...S.cardHead, ...S.panelHead}} onClick={() => togglePanel("rpm")}>
+                        <span style={S.panelHeadLabel}><HardDrive size={13}/> RPM 기기 파트너십 · <Cpu size={13}/> AI span</span>
+                        <ChevronDown size={13} style={{transform: panelOpen.rpm ? "none" : "rotate(-90deg)", transition: "transform .2s"}}/>
+                    </div>
+                    {panelOpen.rpm && <><div className="lv" style={{...S.lever, cursor: "pointer"}} onClick={() => setDevPartner(!devPartner)}>
                         <div style={{...S.toggle, background: devPartner ? "#2E7D52" : "#232a38"}}>
                             <div style={{...S.knob, transform: devPartner ? "translateX(16px)" : "none"}}/>
                         </div>
@@ -963,13 +1001,15 @@
                     <div style={S.lamNote}>AI 케어매니저(B2b): span {inpSZ.spanBase}→{T.aiSpan}명/인 — M3 스톡 {R.m3Lives.toFixed(0)}명의 증원 회피 = {sign(R.parts.ai * 12)}{fmt(Math.abs(R.parts.ai * 12))}/년. 코디네이션만 대체
                         — physician-supervised (가드레일 9).
                     </div>
+                    </>}
                 </div>
 
-                <div style={S.card}>
-                    <div style={{...S.cardHead, cursor: "pointer"}} onClick={() => setShowInputs(!showInputs)}>
-                        <ChevronDown size={13} style={{transform: showInputs ? "none" : "rotate(-90deg)", transition: "transform .2s"}}/> 병원 수치 입력 {showInputs ? "" : "(펼치기)"}
+                <div style={{...S.card, ...S.rightPane}}>
+                    <div style={{...S.cardHead, ...S.panelHead}} onClick={() => togglePanel("inputs")}>
+                        <span style={S.panelHeadLabel}><ChevronDown size={13} style={{transform: panelOpen.inputs ? "none" : "rotate(-90deg)", transition: "transform .2s"}}/> 병원 수치 입력</span>
+                        <ChevronDown size={13} style={{transform: panelOpen.inputs ? "none" : "rotate(-90deg)", transition: "transform .2s"}}/>
                     </div>
-                    {showInputs && (
+                    {panelOpen.inputs && (
                         <>
                             <div style={{display: "flex", gap: 6, marginBottom: 10}}>
                                 {[{id: "sz", l: "심천 [DR]"}, {id: "bj", l: "북경 [ASS]"}].map((s) => (
@@ -996,7 +1036,7 @@
                     )}
                 </div>
 
-                <div style={S.warnBox}>
+                <div style={{...S.warnBox, ...S.fullSpan}}>
                     <div style={S.warn}><TriangleAlert size={12} style={{flexShrink: 0, marginTop: 1}}/>
                         <span>북경 열 전부 [ASS] — 실사 확인 전 별표. ARPU·원가 [ASS] — 대외 프라이싱 금지. 보고는 밴드로만.</span></div>
                     <div style={S.warn}><TriangleAlert size={12} style={{flexShrink: 0, marginTop: 1}}/>
@@ -1005,31 +1045,42 @@
                         <span>확장 경로 = 매트릭스 대각선: 심천① Pilot(계수 검증) → 합산②(코어) → 검증 후 합산③.</span></div>
                 </div>
 
-                <div style={S.footer}>
+                <div style={{...S.footer, ...S.fullSpan}}>
                     v3.3 — §11 JV 구조를 실제 term sheet로 교체(대칭 이중 라이선싱, 로열티10%) · 5개년 동적 프로젝션에 순차확장 모드 추가(Y1외래→Y2검진→Y3기업, 합산 도메인 전용) — 기존 고정범위 모드와 토글 전환.
                 </div>
             </div>
         );
     }
 
-    const styles = {
+    function createStyles(vw) {
+        const wide = vw >= 1080;
+        const compact = vw < 640;
+        return {
         root: {
-            maxWidth: 780,
+            maxWidth: wide ? 1320 : 780,
             margin: "0 auto",
-            padding: "16px 14px 28px",
+            padding: wide ? "18px 18px 32px" : "16px 14px 28px",
             background: "#0d1017",
             minHeight: "100vh",
             color: "#cdd6e6",
-            fontFamily: "-apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif"
+            fontFamily: "-apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif",
+            display: wide ? "grid" : "block",
+            gridTemplateColumns: wide ? "minmax(0, 1.12fr) minmax(360px, 0.88fr)" : "none",
+            gap: wide ? 16 : 0,
+            alignItems: "start",
+            gridAutoFlow: wide ? "dense" : "row"
         },
+        fullSpan: {gridColumn: wide ? "1 / -1" : "auto"},
+        leftPane: {gridColumn: wide ? "1" : "auto", alignSelf: "start"},
+        rightPane: {gridColumn: wide ? "2" : "auto", alignSelf: "start"},
         header: {display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14},
         kicker: {fontSize: 9, letterSpacing: 1.2, color: "#5b6577", fontWeight: 800, fontFamily: "ui-monospace, monospace", marginBottom: 3},
         title: {fontSize: 16.5, fontWeight: 800, color: "#f0f3f9", lineHeight: 1.25},
-        segRow: {display: "flex", gap: 6, marginBottom: 10},
+        segRow: {display: "grid", gridTemplateColumns: compact ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: 6, marginBottom: 10},
         seg: {flex: 1, background: "#12161f", border: "1px solid #232a38", color: "#8792a6", borderRadius: 9, padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: "pointer"},
         segSm: {flex: 1, background: "#12161f", border: "1px solid #232a38", color: "#8792a6", borderRadius: 9, padding: "7px 0", fontSize: 11, fontWeight: 700, cursor: "pointer"},
         segOn: {background: "#20304F", color: "#CFE0FF", borderColor: "#3a4d78"},
-        mxGrid: {display: "grid", gridTemplateColumns: "78px 1fr 1fr 1fr", gap: 5},
+        mxGrid: {display: "grid", gridTemplateColumns: compact ? "64px 1fr 1fr 1fr" : "78px 1fr 1fr 1fr", gap: 5},
         mxCorner: {},
         mxColHead: {fontSize: 10, color: "#8792a6", fontWeight: 800, textAlign: "center", padding: "4px 0"},
         mxRowHead: {fontSize: 10, color: "#8792a6", fontWeight: 800, display: "flex", alignItems: "center"},
@@ -1047,19 +1098,21 @@
         bandMark: {position: "absolute", top: -3, width: 3, height: 12, background: "#4FD1C5", borderRadius: 2, transform: "translateX(-1px)"},
         bandZero: {position: "absolute", top: -4, width: 1, height: 14, background: "#5b6577"},
         bandLabels: {display: "flex", justifyContent: "space-between", fontSize: 10, color: "#5b6577", marginTop: 7, fontFamily: "ui-monospace, monospace"},
-        chips: {display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6, marginBottom: 14},
+        chips: {display: "grid", gridTemplateColumns: compact ? "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: 6, marginBottom: 14},
         chip: {background: "#12161f", border: "1px solid", borderRadius: 11, padding: "9px 8px"},
         chipDot: {width: 7, height: 7, borderRadius: 4, marginBottom: 5},
         chipName: {fontSize: 8.5, color: "#8792a6", fontWeight: 700, lineHeight: 1.2, height: 22},
         chipVal: {fontSize: 12.5, fontWeight: 800, fontFamily: "ui-monospace, monospace", marginTop: 2},
         chipTag: {fontSize: 7.5, color: "#5b6577", marginTop: 3, lineHeight: 1.2},
-        card: {background: "#12161f", border: "1px solid #232a38", borderRadius: 14, padding: 14, marginBottom: 12},
+        card: {background: "#12161f", border: "1px solid #232a38", borderRadius: 14, padding: wide ? 15 : 14, marginBottom: 12},
         cardHead: {display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "#8792a6", marginBottom: 12, letterSpacing: 0.3},
+        panelHead: {justifyContent: "space-between", cursor: "pointer", marginBottom: 0},
+        panelHeadLabel: {display: "flex", alignItems: "center", gap: 6, minWidth: 0},
         wfRow: {display: "flex", alignItems: "center", gap: 8, marginBottom: 8},
-        wfLabel: {width: 64, fontSize: 10.5, color: "#a9b3c6", flexShrink: 0},
+        wfLabel: {width: compact ? 58 : 64, fontSize: 10.5, color: "#a9b3c6", flexShrink: 0},
         wfBarWrap: {flex: 1, height: 14, background: "#0d1017", borderRadius: 3, overflow: "hidden"},
         wfBar: {height: 14, borderRadius: 3, transition: "width .35s cubic-bezier(.4,0,.2,1)"},
-        wfVal: {width: 72, textAlign: "right", fontSize: 10.5, fontFamily: "ui-monospace, monospace", flexShrink: 0},
+        wfVal: {width: compact ? 64 : 72, textAlign: "right", fontSize: 10.5, fontFamily: "ui-monospace, monospace", flexShrink: 0},
         wfNet: {
             display: "flex",
             justifyContent: "space-between",
@@ -1082,7 +1135,7 @@
         lamRow: {display: "flex", alignItems: "center", gap: 12},
         lamVal: {fontSize: 15, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#FF9F43", minWidth: 62, textAlign: "right"},
         lamNote: {fontSize: 10, color: "#7a859a", marginTop: 9, lineHeight: 1.45},
-        inputGrid: {display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9},
+        inputGrid: {display: "grid", gridTemplateColumns: wide ? "1fr" : compact ? "1fr" : "1fr 1fr", gap: 9},
         inputCell: {},
         inputLabel: {fontSize: 9.5, color: "#7a859a", display: "block", marginBottom: 3},
         inputWrap: {display: "flex", alignItems: "center", background: "#0d1017", border: "1px solid #232a38", borderRadius: 7, padding: "0 8px"},
@@ -1104,6 +1157,7 @@
         },
         footer: {fontSize: 9.5, color: "#5b6577", lineHeight: 1.5, marginTop: 8, padding: "0 2px"},
     };
+    }
 
     document.getElementById('root').dataset.mounted = 'true';
     ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
