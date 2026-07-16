@@ -428,7 +428,7 @@
 
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-    function siteCalc(t, inp, scope, lv, devPartner, kap, corpScreens, entOK, succ) {
+    function siteCalc(t, inp, scope, lv, devPartner, kap, corpScreens, entOK, succ, formulas = FORMULA_DEFAULTS, formulaErrors = []) {
         const on = (k) => {
             const d = LEVERS.find((x) => x.k === k);
             if (d.ent && !entOK) return false;
@@ -444,18 +444,38 @@
         const ts = scr + cs + xScr;
         const revOP = inp.monthlyVisits * inp.arpu;
         const ebitda0 = (revOP + scr * inp.scrPrice) * (1 - vc) - inp.fixedCost;
+        const f = (name, vars) => safeEvalFormula(name, formulas, vars, formulaErrors, FORMULA_DEFAULTS[name]);
 
         let b1 = 0, teleSub = 0;
         if (on("b1")) {
-            const tv = inp.monthlyVisits * t.teleAdopt;
-            teleSub = tv * t.cannib;
-            b1 = tv * (1 - t.cannib) * t.teleArpu * (1 - vc) - teleSub * (inp.arpu - t.teleArpu) * (1 - vc);
+            const teleVisits = inp.monthlyVisits * t.teleAdopt;
+            teleSub = teleVisits * t.cannib;
+            b1 = f("teleNet", {
+                teleVisits,
+                cannib: t.cannib,
+                teleArpu: t.teleArpu,
+                teleSub,
+                arpu: inp.arpu,
+                vc
+            });
         }
-        const b1b = on("b1b") ? inp.monthlyUnbilled * t.billConv * inp.consultFee * (1 - vc) : 0;
+        const b1b = on("b1b") ? f("billConvRevenue", {
+            monthlyUnbilled: inp.monthlyUnbilled,
+            billConv: t.billConv,
+            consultFee: inp.consultFee,
+            vc
+        }) : 0;
         let b2a = 0;
         if (on("b2a")) {
-            const sf = (inp.monthlyVisits * inp.fuShare) / (1 - inp.missedRate);
-            b2a = sf * inp.missedRate * t.fuRecover * occ * inp.arpu * (1 - vc);
+            const scheduledFollowups = (inp.monthlyVisits * inp.fuShare) / (1 - inp.missedRate);
+            b2a = f("fuRecoveryRevenue", {
+                scheduledFollowups,
+                missedRate: inp.missedRate,
+                fuRecover: t.fuRecover,
+                occ,
+                arpu: inp.arpu,
+                vc
+            });
         }
         const b2c = on("b2c") ? revOP * inp.leakRate * t.capture : 0;
         const m1a = on("m1a") ? inp.monthlyVisits * inp.gapRate * t.gapClose * inp.gapFee * (1 - vc) : 0;
@@ -463,54 +483,87 @@
         const w4 = on("w4") ? ts * t.abnRate * t.spConv * (inp.arpu * 1.2) * (1 - vc) : 0;
         const g1 = on("g1") ? inp.monthlyVisits * inp.refOutRate * t.refBack * (inp.arpu * 2) * (1 - vc) : 0;
         const b2b = on("b2b") ? inp.coordN * inp.coordCost * inp.repetitivePct * t.autoReal : 0;
-        const w2Lives = on("w2") ? ts * t.abnRate * t.w2Conv : 0;
+        const w2Lives = on("w2") ? f("w2Lives", {
+            screenTotal: ts,
+            abnRate: t.abnRate,
+            w2Conv: t.w2Conv
+        }) : 0;
         const newLives = on("m3") ? t.m3New + w2Lives * 12 : 0;
         const m3Lives = on("m3") ? inp.chronicPanel * t.m3Enroll + newLives : 0;
-        const m3 = on("m3") ? m3Lives * t.m3Fee * (1 - vc) : 0;
+        const m3 = on("m3") ? f("m3Revenue", {m3Lives, m3Fee: t.m3Fee, vc}) : 0;
         const m3v = on("m3v") ? newLives * (inp.visitsPerLifeYr / 12) * inp.arpu * (1 - vc) : 0;
         const rx = on("rx") ? m3Lives * inp.rxPM * 0.40 : 0;
-        const dev = devPartner ? 0 : inp.rpmDevAmort;
-        const rpm = on("rpm") ? m3Lives * t.rpmAdopt * (inp.rpmFee * (1 - vc) - dev) : 0;
+        const rpmDevCost = devPartner ? 0 : inp.rpmDevAmort;
+        const rpm = on("rpm") ? f("rpmRevenue", {
+            m3Lives,
+            rpmAdopt: t.rpmAdopt,
+            rpmFee: inp.rpmFee,
+            vc,
+            rpmDevCost
+        }) : 0;
         const w1 = on("w1") ? scr * inp.scrPrice * t.scrUplift * (1 - vc) : 0;
         const w5 = on("w5") ? (m3Lives * t.scrRepeat / 12) * inp.scrPrice * (1 - vc) : 0;
         const f1 = on("f1") ? (m3Lives * t.famRate / 12) * inp.scrPrice * (1 - vc) : 0;
-        const ai = on("ai") ? Math.max(0, m3Lives / inp.spanBase - m3Lives / t.aiSpan) * inp.mgrCost : 0;
-        const c1 = on("c1") ? cs * inp.scrPrice * (1 - vc) : 0;
+        const ai = on("ai") ? f("aiSavings", {
+            m3Lives,
+            spanBase: inp.spanBase,
+            aiSpan: t.aiSpan,
+            mgrCost: inp.mgrCost
+        }) : 0;
+        const c1 = on("c1") ? f("corpScreenRevenue", {
+            corpScreens: cs,
+            scrPrice: inp.scrPrice,
+            vc
+        }) : 0;
         const x1 = on("x1") ? xScr * inp.scrPrice * (1 - vc) : 0;
         const k1 = on("b1") && on("b2a") ? b2a * kap.k1 : 0;
         const k2 = on("rpm") ? (rx + w5) * kap.k2 : 0;
         const kappa = k1 + k2;
         const insNew = Math.max(b1, 0) + b1b + m1a + w4 + m3v;
         const succRate = on("rcm") ? succ.on : succ.off;      // 청구성공률: ON=clean-claim 가동, OFF=무대책
-        const rcm = -(insNew * inp.insShare * (1 - succRate));
+        const rcm = f("denialCost", {
+            insNew,
+            insShare: inp.insShare,
+            succRate
+        });
         const rcmAverted = on("rcm") ? insNew * inp.insShare * (succ.on - succ.off) : 0;
         const parts = {b1, b1b, b2a, b2c, m1a, w3, w4, g1, b2b, ai, m3, m3v, rx, rpm, w1, x1, w5, f1, c1, kappa, rcm};
         const net = Object.values(parts).reduce((a, b) => a + b, 0);
         return {parts, net, ebitda0, m3Lives, w2Lives, rcmAverted, occ};
     }
 
-    function cellCalc(site, scope, t, inpSZ, inpBJ, lv, devPartner, kap, succ, oc) {
+    function cellCalc(site, scope, t, inpSZ, inpBJ, lv, devPartner, kap, succ, oc, formulas = FORMULA_DEFAULTS) {
         const entOK = site === "comb" && scope >= 3;
+        const formulaErrors = [];
         const addedEmp = entOK && lv.r1 ? t.newContracts * ENT.avgEmpPerContract * 0.5 : 0;
         const spokeEmpTot = entOK ? oc.spokeN * ENT.spokeEmp + addedEmp : 0;  // [v3.1] 전환 스포크 기반
         const effEap = spokeEmpTot;
-        const c1s = entOK && lv.c1 ? (effEap * t.corpScrPen * 4) / 12 : 0;   // 전환 스포크는 침투 4배 (디지털화 사이트)
+        const c1s = entOK && lv.c1 ? safeEvalFormula("corpScreenFlow", formulas, {
+            effectiveEap: effEap,
+            corpScrPen: t.corpScrPen
+        }, formulaErrors, FORMULA_DEFAULTS.corpScreenFlow) : 0;   // 전환 스포크는 침투 4배 (디지털화 사이트)
         const finish = (r, sitesN, b3v) => {
             // Loop opex 3층: 플랫폼 고정(네트워크) + 사이트당 + M3 인당 [v2.6]
             // 라이선스료 없음 — JV에 루프 판권 현물출자로 대체 (정산구조 [PENDING])
-            const opex = oc.fixed + oc.perSite * sitesN + oc.perLife * r.m3Lives;
+            const opex = safeEvalFormula("loopOpexStatic", formulas, {
+                fixed: oc.fixed,
+                perSite: oc.perSite,
+                perLife: oc.perLife,
+                sitesN,
+                m3Lives: r.m3Lives
+            }, formulaErrors, FORMULA_DEFAULTS.loopOpexStatic);
             const parts = {...r.parts, b3: b3v, opex: -opex};
             const net = r.net + b3v - opex;
             const payback = net > 0 ? oc.capex / net : Infinity;   // capex는 EBITDA 밖 — 회수기간만
-            return {...r, parts, net, payback, opex};
+            return {...r, parts, net, payback, opex, formulaErrors};
         };
         if (site === "sz" || site === "bj") {
-            const r = siteCalc(t, site === "sz" ? inpSZ : inpBJ, scope, lv, devPartner, kap, 0, false, succ);
+            const r = siteCalc(t, site === "sz" ? inpSZ : inpBJ, scope, lv, devPartner, kap, 0, false, succ, formulas, formulaErrors);
             return {...finish(r, 1, 0), effEap: 0, addedEmp: 0, c1s: 0};
         }
         const shSZ = inpSZ.monthlyVisits / (inpSZ.monthlyVisits + inpBJ.monthlyVisits);
-        const a = siteCalc(t, inpSZ, scope, lv, devPartner, kap, c1s * shSZ, entOK, succ);
-        const b = siteCalc(t, inpBJ, scope, lv, devPartner, kap, c1s * (1 - shSZ), entOK, succ);
+        const a = siteCalc(t, inpSZ, scope, lv, devPartner, kap, c1s * shSZ, entOK, succ, formulas, formulaErrors);
+        const b = siteCalc(t, inpBJ, scope, lv, devPartner, kap, c1s * (1 - shSZ), entOK, succ, formulas, formulaErrors);
         const parts = {};
         Object.keys(a.parts).forEach((k) => {
             parts[k] = a.parts[k] + b.parts[k];
@@ -519,16 +572,27 @@
             parts, net: a.net + b.net, ebitda0: a.ebitda0 + b.ebitda0, m3Lives: a.m3Lives + b.m3Lives,
             w2Lives: a.w2Lives + b.w2Lives, rcmAverted: a.rcmAverted + b.rcmAverted, occ: Math.min(a.occ, b.occ)
         };
-        const b3v = entOK && lv.b3 ? effEap * t.eapPen * t.pepm : 0;
+        const b3v = entOK && lv.b3 ? safeEvalFormula("b3Revenue", formulas, {
+            effectiveEap: effEap,
+            eapPen: t.eapPen,
+            pepm: t.pepm
+        }, formulaErrors, FORMULA_DEFAULTS.b3Revenue) : 0;
         return {...finish(merged, 2, b3v), effEap, addedEmp, c1s};
     }
 
-    function dynProject(site, scope, t, inpSZ, inpBJ, lv, devPartner, succ, oc, seq = false) {
+    function dynProject(site, scope, t, inpSZ, inpBJ, lv, devPartner, succ, oc, seq = false, formulas = FORMULA_DEFAULTS) {
         // 5개년 동적 — §8 합의 파라미터. κ=0, 가격 동결, 계수 개선 없음.
         // [v3.1] 스포크 전환 스케줄 (게이트: Y1말 앵커→Y2하 5곳→Y3 대량) — tier별
         const SCHED = t.spokeSched;
         const sites = site === "comb" ? [inpSZ, inpBJ] : [site === "sz" ? inpSZ : inpBJ];
-        const churnEff = t.churn0 * (1 - (lv.rpm && lv.m3 ? t.rpmAdopt * t.delta : 0));
+        const errors = [];
+        const churnEff = safeEvalFormula("churnEff", formulas, {
+            churn0: t.churn0,
+            rpmActive: lv.rpm ? 1 : 0,
+            m3Active: lv.m3 ? 1 : 0,
+            rpmAdopt: t.rpmAdopt,
+            delta: t.delta
+        }, errors, FORMULA_DEFAULTS.churnEff);
         const years = [];
         let stocks = sites.map((inp) => (lv.m3 ? inp.chronicPanel * t.m3Enroll : 0));
         let capHitYear = null;
@@ -538,11 +602,18 @@
             const entOK = site === "comb" && yScope >= 3;
             const gf = Math.pow(1 + t.natGrow, y - 1);
             const spokeIdx = seq ? y - 3 : y - 1;              // 순차모드: Y3=스케줄[0](앵커)
-            const spokes = entOK && lv.b3 ? SCHED[Math.max(0, Math.min(spokeIdx, SCHED.length - 1))] : 0;
+            const scheduleValue = entOK && lv.b3 ? SCHED[Math.max(0, Math.min(spokeIdx, SCHED.length - 1))] : 0;
+            const spokes = safeEvalFormula("dynSpokes", formulas, {
+                b3Active: lv.b3 ? 1 : 0,
+                scheduleValue
+            }, errors, FORMULA_DEFAULTS.dynSpokes);
             const prevSpokeIdx = spokeIdx - 1;
             const prevSpokes = entOK && lv.b3 && y > (seq ? 3 : 1) ? SCHED[Math.max(0, Math.min(prevSpokeIdx, SCHED.length - 1))] : 0;
             const cumSpokeEmp = spokes * ENT.spokeEmp;
-            const c1s = entOK && lv.c1 ? (cumSpokeEmp * t.corpScrPen * 4) / 12 : 0;
+            const c1s = entOK && lv.c1 ? safeEvalFormula("corpScreenFlow", formulas, {
+                effectiveEap: cumSpokeEmp,
+                corpScrPen: t.corpScrPen
+            }, errors, FORMULA_DEFAULTS.corpScreenFlow) : 0;
             const totV0 = sites.reduce((a, i) => a + i.monthlyVisits, 0);
             let net = 0, m3Tot = 0, capHit = false, visTot = 0, capTot = 0;
             sites.forEach((inp, si) => {
@@ -559,18 +630,52 @@
                 // 유입 → 저수지
                 const xScr = lv.x1 && yScope >= 2 ? (inp.crossPool * t.xConv) / 12 : 0;
                 const ts2 = ts + xScr;
-                const w2L = lv.w2 && lv.m3 && yScope >= 2 ? ts2 * t.abnRate * t.w2Conv : 0;
+                const w2L = lv.w2 && lv.m3 && yScope >= 2 ? safeEvalFormula("w2Lives", formulas, {
+                    screenTotal: ts2,
+                    abnRate: t.abnRate,
+                    w2Conv: t.w2Conv
+                }, errors, FORMULA_DEFAULTS.w2Lives) : 0;
                 // 스포크 전환 코호트: 신규 전환 스포크의 위험군 등록 (사이트 방문비중 배분)
-                const spokeCohort = lv.m3 && entOK ? ((spokes - prevSpokes) * ENT.spokeEmp * 0.15 * t.spokeEnroll) / 12 * (inp.monthlyVisits / totV0) : 0;
+                const visitShare = inp.monthlyVisits / totV0;
+                const spokeCohort = lv.m3 && entOK ? safeEvalFormula("dynSpokeCohort", formulas, {
+                    m3Active: lv.m3 ? 1 : 0,
+                    entOKActive: entOK ? 1 : 0,
+                    spokes,
+                    prevSpokes,
+                    spokeEmp: ENT.spokeEmp,
+                    spokeEnroll: t.spokeEnroll,
+                    visitShare
+                }, errors, FORMULA_DEFAULTS.dynSpokeCohort) : 0;
                 const inflow = lv.m3 ? (t.m3New + w2L * 12 + spokeCohort * 12) : 0;
                 stocks[si] = stocks[si] * (1 - churnEff) + inflow;
                 const m3L = stocks[si];
                 m3Tot += m3L;
                 // 레버 (v2.6 동일 수식 — Loop 귀속분만, 자연성장 매출 미계상 §8-③)
-                const tv = lv.b1 ? visits * t.teleAdopt : 0;
-                const b1 = tv * (1 - t.cannib) * t.teleArpu * (1 - vc) - tv * t.cannib * (inp.arpu - t.teleArpu) * (1 - vc);
-                const b1b = lv.b1b ? inp.monthlyUnbilled * t.billConv * inp.consultFee * (1 - vc) : 0;
-                const b1c = lv.b2a ? ((visits * inp.fuShare) / (1 - inp.missedRate)) * inp.missedRate * t.fuRecover * occ * inp.arpu * (1 - vc) : 0;
+                const teleVisits = lv.b1 ? visits * t.teleAdopt : 0;
+                const teleSub = teleVisits * t.cannib;
+                const b1 = lv.b1 ? safeEvalFormula("teleNet", formulas, {
+                    teleVisits,
+                    cannib: t.cannib,
+                    teleArpu: t.teleArpu,
+                    teleSub,
+                    arpu: inp.arpu,
+                    vc
+                }, errors, FORMULA_DEFAULTS.teleNet) : 0;
+                const b1b = lv.b1b ? safeEvalFormula("billConvRevenue", formulas, {
+                    monthlyUnbilled: inp.monthlyUnbilled,
+                    billConv: t.billConv,
+                    consultFee: inp.consultFee,
+                    vc
+                }, errors, FORMULA_DEFAULTS.billConvRevenue) : 0;
+                const scheduledFollowups = (visits * inp.fuShare) / (1 - inp.missedRate);
+                const b1c = lv.b2a ? safeEvalFormula("fuRecoveryRevenue", formulas, {
+                    scheduledFollowups,
+                    missedRate: inp.missedRate,
+                    fuRecover: t.fuRecover,
+                    occ,
+                    arpu: inp.arpu,
+                    vc
+                }, errors, FORMULA_DEFAULTS.fuRecoveryRevenue) : 0;
                 const b1d = lv.b2c ? visits * inp.arpu * inp.leakRate * t.capture : 0;
                 const m1a = lv.m1a ? visits * inp.gapRate * t.gapClose * inp.gapFee * (1 - vc) : 0;
                 const g1 = lv.g1 ? visits * inp.refOutRate * t.refBack * (inp.arpu * 2) * (1 - vc) : 0;
@@ -578,28 +683,62 @@
                 const w4 = lv.w4 && yScope >= 2 ? ts2 * t.abnRate * t.spConv * (inp.arpu * 1.2) * (1 - vc) : 0;
                 const x1 = lv.x1 && yScope >= 2 ? xScr * inp.scrPrice * (1 - vc) : 0;
                 const b2a_ = lv.b2b ? inp.coordN * inp.coordCost * inp.repetitivePct * t.autoReal : 0;
-                const ai = lv.ai && lv.m3 ? Math.max(0, m3L / inp.spanBase - m3L / t.aiSpan) * inp.mgrCost : 0;
-                const m3 = lv.m3 ? m3L * t.m3Fee * (1 - vc) : 0;
+                const ai = lv.ai && lv.m3 ? safeEvalFormula("aiSavings", formulas, {
+                    m3Lives: m3L,
+                    spanBase: inp.spanBase,
+                    aiSpan: t.aiSpan,
+                    mgrCost: inp.mgrCost
+                }, errors, FORMULA_DEFAULTS.aiSavings) : 0;
+                const m3 = lv.m3 ? safeEvalFormula("m3Revenue", formulas, {
+                    m3Lives: m3L,
+                    m3Fee: t.m3Fee,
+                    vc
+                }, errors, FORMULA_DEFAULTS.m3Revenue) : 0;
                 const m3v = lv.m3v && lv.m3 ? inflow * (inp.visitsPerLifeYr / 12) * inp.arpu * (1 - vc) : 0;
                 const rx = lv.rx && lv.m3 ? m3L * inp.rxPM * 0.40 : 0;
-                const dev = devPartner ? 0 : inp.rpmDevAmort;
-                const rpm = lv.rpm && lv.m3 ? m3L * t.rpmAdopt * (inp.rpmFee * (1 - vc) - dev) : 0;
+                const rpmDevCost = devPartner ? 0 : inp.rpmDevAmort;
+                const rpm = lv.rpm && lv.m3 ? safeEvalFormula("rpmRevenue", formulas, {
+                    m3Lives: m3L,
+                    rpmAdopt: t.rpmAdopt,
+                    rpmFee: inp.rpmFee,
+                    vc,
+                    rpmDevCost
+                }, errors, FORMULA_DEFAULTS.rpmRevenue) : 0;
                 const w1 = lv.w1 && yScope >= 2 ? scr * inp.scrPrice * t.scrUplift * (1 - vc) : 0;
                 const w5 = lv.w5 && lv.m3 && yScope >= 2 ? (m3L * t.scrRepeat / 12) * inp.scrPrice * (1 - vc) : 0;
                 const f1 = lv.f1 && lv.m3 && yScope >= 2 ? (m3L * t.famRate / 12) * inp.scrPrice * (1 - vc) : 0;
-                const c1 = lv.c1 && yScope >= 3 ? cs * inp.scrPrice * (1 - vc) : 0;
+                const c1 = lv.c1 && yScope >= 3 ? safeEvalFormula("corpScreenRevenue", formulas, {
+                    corpScreens: cs,
+                    scrPrice: inp.scrPrice,
+                    vc
+                }, errors, FORMULA_DEFAULTS.corpScreenRevenue) : 0;
                 const insNew = Math.max(b1, 0) + b1b + m1a + w4 + m3v;
-                const rcm = -(insNew * inp.insShare * (1 - (lv.rcm ? succ.on : succ.off)));
+                const rcm = safeEvalFormula("denialCost", formulas, {
+                    insNew,
+                    insShare: inp.insShare,
+                    succRate: lv.rcm ? succ.on : succ.off
+                }, errors, FORMULA_DEFAULTS.denialCost);
                 net += b1 + b1b + b1c + b1d + m1a + g1 + w3 + w4 + b2a_ + ai + m3 + m3v + rx + rpm + w1 + x1 + w5 + f1 + c1 + rcm;
             });
-            const b3 = entOK && lv.b3 ? cumSpokeEmp * t.pepm : 0;
-            const opex = oc.fixed * Math.pow(1.03, y - 1) + oc.perSite * sites.length + oc.perLife * m3Tot; // §8-⑦
+            const b3 = entOK && lv.b3 ? safeEvalFormula("b3Revenue", formulas, {
+                effectiveEap: cumSpokeEmp,
+                eapPen: 1,
+                pepm: t.pepm
+            }, errors, FORMULA_DEFAULTS.b3Revenue) : 0;
+            const opex = safeEvalFormula("dynLoopOpex", formulas, {
+                fixed: oc.fixed,
+                perSite: oc.perSite,
+                perLife: oc.perLife,
+                year: y,
+                sitesN: sites.length,
+                m3Lives: m3Tot
+            }, errors, FORMULA_DEFAULTS.dynLoopOpex); // §8-⑦
             net += b3 - opex;
             if (capHit && !capHitYear) capHitYear = y;
             years.push({y, net, m3: m3Tot, spokes, capHit, util: visTot / capTot * 0.95});
         }
         const cum = years.reduce((a, r) => a + r.net * 12, 0);
-        return {years, cum, capHitYear, churnEff};
+        return {years, cum, capHitYear, churnEff, errors};
     }
 
     const GRP_META = {
@@ -608,6 +747,123 @@
         B3: {name: "B3 가치·플랫폼", tag: "기업 구독 PEPM", color: "#9B8BE8"},
         게이트: {name: "게이트·비용(−)", tag: "청구실패 + Loop opex", color: "#E06C75"},
     };
+
+    const FORMULA_DEFAULTS = {
+        teleNet: "teleVisits * (1 - cannib) * teleArpu * (1 - vc) - teleSub * (arpu - teleArpu) * (1 - vc)",
+        billConvRevenue: "monthlyUnbilled * billConv * consultFee * (1 - vc)",
+        fuRecoveryRevenue: "scheduledFollowups * missedRate * fuRecover * occ * arpu * (1 - vc)",
+        w2Lives: "screenTotal * abnRate * w2Conv",
+        m3Revenue: "m3Lives * m3Fee * (1 - vc)",
+        rpmRevenue: "m3Lives * rpmAdopt * (rpmFee * (1 - vc) - rpmDevCost)",
+        aiSavings: "max(0, m3Lives / spanBase - m3Lives / aiSpan) * mgrCost",
+        corpScreenFlow: "effectiveEap * corpScrPen * 4 / 12",
+        corpScreenRevenue: "corpScreens * scrPrice * (1 - vc)",
+        b3Revenue: "effectiveEap * eapPen * pepm",
+        denialCost: "-insNew * insShare * (1 - succRate)",
+        loopOpexStatic: "fixed + perSite * sitesN + perLife * m3Lives",
+        churnEff: "churn0 * (1 - rpmActive * m3Active * rpmAdopt * delta)",
+        dynSpokes: "b3Active * scheduleValue",
+        dynSpokeCohort: "m3Active * entOKActive * max(0, spokes - prevSpokes) * spokeEmp * 0.15 * spokeEnroll / 12 * visitShare",
+        dynLoopOpex: "fixed * pow(1.03, year - 1) + perSite * sitesN + perLife * m3Lives",
+    };
+
+    const FORMULA_META = [
+        {key: "teleNet", label: "원격케어 순증", group: "현재값"},
+        {key: "billConvRevenue", label: "무상케어 청구화", group: "현재값"},
+        {key: "fuRecoveryRevenue", label: "FU 미방문 회복", group: "현재값"},
+        {key: "w2Lives", label: "W2→M3 전환 lives", group: "현재값"},
+        {key: "m3Revenue", label: "M3 관리료", group: "현재값"},
+        {key: "rpmRevenue", label: "RPM 수익", group: "현재값"},
+        {key: "aiSavings", label: "AI span 절감", group: "현재값"},
+        {key: "corpScreenFlow", label: "기업→검진 유입량", group: "기업 스포크"},
+        {key: "corpScreenRevenue", label: "기업 검진 매출", group: "기업 스포크"},
+        {key: "b3Revenue", label: "기업 EAP PEPM", group: "기업 스포크"},
+        {key: "denialCost", label: "청구실패 차감", group: "게이트/비용"},
+        {key: "loopOpexStatic", label: "현재 Loop opex", group: "게이트/비용"},
+        {key: "churnEff", label: "유효 churn", group: "5개년"},
+        {key: "dynSpokes", label: "연도별 스포크 수", group: "5개년"},
+        {key: "dynSpokeCohort", label: "신규 스포크 코호트", group: "5개년"},
+        {key: "dynLoopOpex", label: "연도별 Loop opex", group: "5개년"},
+    ];
+
+    const FORMULA_HELP = {
+        teleNet: ["원격케어 순증 매출 식입니다.", "레버별 기여의 B1a, 순 ΔEBITDA, 청구실패 차감 기준에 반영됩니다."],
+        billConvRevenue: ["무상 상담/핫라인을 청구화하는 식입니다.", "B1b 기여와 순 ΔEBITDA에 반영됩니다."],
+        fuRecoveryRevenue: ["미방문 follow-up 회복 매출 식입니다.", "B1c 기여와 순 ΔEBITDA에 반영됩니다."],
+        w2Lives: ["검진/기업 유입이 M3 lives로 전환되는 식입니다.", "M3 스톡, M3 관리료, 5개년 저수지에 반영됩니다."],
+        m3Revenue: ["M3 관리료 수익 식입니다.", "현재값 net과 5개년 각 연도 net에 반영됩니다."],
+        rpmRevenue: ["RPM 수익 식입니다.", "현재값 net과 5개년 각 연도 net에 반영됩니다."],
+        aiSavings: ["AI span으로 생기는 절감 식입니다.", "B2 운영효율과 5개년 net에 반영됩니다."],
+        corpScreenFlow: ["기업 스포크 분모가 검진 유입으로 전환되는 식입니다.", "C1 흐름, 기업 검진 매출, 5개년 스포크 효과에 반영됩니다."],
+        corpScreenRevenue: ["기업 유입 검진 매출 식입니다.", "C1 매출과 5개년 net에 반영됩니다."],
+        b3Revenue: ["기업 EAP PEPM 수익 식입니다.", "B3 카드, 기업 스포크, 5개년 net에 반영됩니다."],
+        denialCost: ["청구 실패로 빠지는 금액 식입니다.", "게이트 차감과 순 ΔEBITDA에 반영됩니다."],
+        loopOpexStatic: ["현재 시점 Loop 운영비 식입니다.", "opex, payback, 순 ΔEBITDA에 반영됩니다."],
+        churnEff: ["5개년 저수지의 유효 churn 식입니다.", "M3 스톡 누적과 cumulative ΔEBITDA에 반영됩니다."],
+        dynSpokes: ["연도별 기업 스포크 수 식입니다.", "기업 분모, B3, C1, 스포크 코호트에 반영됩니다."],
+        dynSpokeCohort: ["신규 전환 스포크가 M3로 유입되는 코호트 식입니다.", "5개년 M3 스톡과 M3 매출에 반영됩니다."],
+        dynLoopOpex: ["연도별 Loop 운영비 식입니다.", "5개년 net과 cumulative ΔEBITDA에 반영됩니다."],
+    };
+
+    const FORMULA_VAR_HELP = {
+        abnRate: "이상소견 비율", aiSpan: "AI 적용 span", arpu: "외래 ARPU", billConv: "무상→청구 전환율", b3Active: "B3 레버 ON=1/OFF=0",
+        cannib: "잠식률", consultFee: "상담 청구 단가", corpScreens: "기업 유입 검진 수", corpScrPen: "기업 검진 침투율", delta: "RPM churn 완충 계수",
+        effectiveEap: "유효 기업 분모", entOKActive: "합산×③ 조건 충족 플래그", fixed: "플랫폼 고정비", fuRecover: "FU 회복률", insShare: "보험청구 비중",
+        m3Active: "M3 레버 ON=1/OFF=0", m3Fee: "M3 관리료 단가", m3Lives: "M3 스톡", mgrCost: "케어매니저 월비용", missedRate: "FU 미방문율",
+        monthlyUnbilled: "월 무상 상담 수", occ: "가동률 gate", pepm: "기업 PEPM", perLife: "M3 1인당 opex", perSite: "사이트당 opex", prevSpokes: "전년 스포크 수",
+        reExam: "재검 이행률", rpmActive: "RPM 레버 ON=1/OFF=0", rpmAdopt: "RPM 적용률", rpmDevCost: "기기 상각/조달비", rpmFee: "RPM 월 수익", scheduleValue: "스케줄상 스포크 수",
+        scheduledFollowups: "예정 follow-up 수", scrPrice: "검진 단가", screenTotal: "검진 총량", sitesN: "사이트 수", spokeEmp: "스포크당 직원 수", spokeEnroll: "스포크 M3 등록률",
+        spokes: "해당 연도 스포크 수", spanBase: "기본 span", succRate: "청구 성공률", teleArpu: "원격 ARPU", teleSub: "잠식된 원격 방문 수", teleVisits: "원격 방문 수",
+        vc: "가변비율", visitShare: "사이트별 방문 비중", w2Conv: "유소견→M3 전환율", year: "5개년 연도"
+    };
+
+    function formulaVarSummary(key, formulas) {
+        const expr = String((formulas && formulas[key]) || FORMULA_DEFAULTS[key] || "");
+        const fnNames = new Set(["abs", "ceil", "floor", "max", "min", "pow", "round"]);
+        const vars = Array.from(new Set((expr.match(/[A-Za-z_][A-Za-z0-9_]*/g) || [])
+            .filter((name) => !fnNames.has(name) && Number.isNaN(Number(name)))));
+        if (!vars.length) return "상수만 사용합니다.";
+        return vars.map((name) => `${name}: ${FORMULA_VAR_HELP[name] || "Vista 내부 변수"}`).join(" · ");
+    }
+
+    function safeEvalFormula(name, formulas, vars, errors, fallbackExpr) {
+        const hasCustom = !!(formulas && Object.prototype.hasOwnProperty.call(formulas, name));
+        const rawExpr = hasCustom ? formulas[name] : (fallbackExpr || FORMULA_DEFAULTS[name] || "");
+        const expr = String(rawExpr == null ? "" : rawExpr).trim();
+        const fallback = fallbackExpr && fallbackExpr !== expr
+            ? safeEvalFormula(`${name}:fallback`, FORMULA_DEFAULTS, vars, errors, fallbackExpr)
+            : 0;
+        const bad = !expr ||
+            /(?:window|document|globalThis|Function|constructor|prototype|=>|;|\[|\]|\{|\}|=|`|'|")/i.test(expr) ||
+            !/^[0-9A-Za-z_+\-*/%().,\s]+$/.test(expr) ||
+            /[A-Za-z_][A-Za-z0-9_]*\s*\./.test(expr) ||
+            /\.\s*[A-Za-z_]/.test(expr);
+        if (bad) {
+            if (!name.endsWith(":fallback")) errors.push(`${name}: 허용되지 않는 수식`);
+            return fallback;
+        }
+        try {
+            const scope = {
+                ...vars,
+                min: Math.min,
+                max: Math.max,
+                abs: Math.abs,
+                round: Math.round,
+                floor: Math.floor,
+                ceil: Math.ceil,
+                pow: Math.pow,
+            };
+            const keys = Object.keys(scope);
+            const values = keys.map((k) => scope[k]);
+            const fn = new Function(...keys, `"use strict"; return (${expr});`);
+            const value = Number(fn(...values));
+            if (!Number.isFinite(value)) throw new Error("not finite");
+            return value;
+        } catch (e) {
+            if (!name.endsWith(":fallback")) errors.push(`${name}: 계산 실패, 기본식 사용`);
+            return fallback;
+        }
+    }
 
     const SITES = [{id: "sz", l: "심천 [DR]"}, {id: "bj", l: "북경 [ASS]"}, {id: "comb", l: "합산"}];
     const SCOPES = [{n: 1, l: "①외래"}, {n: 2, l: "②+검진"}, {n: 3, l: "③+기업"}];
@@ -630,24 +886,26 @@
             kappa: false,
             rpm: false,
             inputs: false,
+            formulas: false,
         });
         const [lv, setLv] = useState(Object.fromEntries(LEVERS.map((d) => [d.k, !["b3", "c1", "r1"].includes(d.k)])));
         const [inpSZ, setInpSZ] = useState(INP_SZ);
         const [inpBJ, setInpBJ] = useState(INP_BJ);
+        const [formulas, setFormulas] = useState(FORMULA_DEFAULTS);
 
         const T = TIERS[tier];
-        const R = useMemo(() => cellCalc(site, scope, T, inpSZ, inpBJ, lv, devPartner, kap, succ, oc), [site, scope, T, inpSZ, inpBJ, lv, devPartner, kap, succ, oc]);
+        const R = useMemo(() => cellCalc(site, scope, T, inpSZ, inpBJ, lv, devPartner, kap, succ, oc, formulas), [site, scope, T, inpSZ, inpBJ, lv, devPartner, kap, succ, oc, formulas]);
         const band = useMemo(() => {
-            const lo = cellCalc(site, scope, TIERS.cons, inpSZ, inpBJ, lv, devPartner, kap, succ, oc).net * 12;
-            const hi = cellCalc(site, scope, TIERS.aggr, inpSZ, inpBJ, lv, devPartner, kap, succ, oc).net * 12;
+            const lo = cellCalc(site, scope, TIERS.cons, inpSZ, inpBJ, lv, devPartner, kap, succ, oc, formulas).net * 12;
+            const hi = cellCalc(site, scope, TIERS.aggr, inpSZ, inpBJ, lv, devPartner, kap, succ, oc, formulas).net * 12;
             return {lo: Math.min(lo, hi), hi: Math.max(lo, hi)};
-        }, [site, scope, inpSZ, inpBJ, lv, devPartner, kap, succ, oc]);
+        }, [site, scope, inpSZ, inpBJ, lv, devPartner, kap, succ, oc, formulas]);
         const matrix = useMemo(() => SITES.map((s) => SCOPES.map((sc) =>
-            (s.id !== "comb" && sc.n === 3) ? null : cellCalc(s.id, sc.n, T, inpSZ, inpBJ, lv, devPartner, kap, succ, oc).net * 12
-        )), [T, inpSZ, inpBJ, lv, devPartner, kap, succ, oc]);
+            (s.id !== "comb" && sc.n === 3) ? null : cellCalc(s.id, sc.n, T, inpSZ, inpBJ, lv, devPartner, kap, succ, oc, formulas).net * 12
+        )), [T, inpSZ, inpBJ, lv, devPartner, kap, succ, oc, formulas]);
 
         const netY = R.net * 12;
-        const D = useMemo(() => dynProject(site, scope, T, inpSZ, inpBJ, lv, devPartner, succ, oc, seqMode), [site, scope, T, inpSZ, inpBJ, lv, devPartner, succ, oc, seqMode]);
+        const D = useMemo(() => dynProject(site, scope, T, inpSZ, inpBJ, lv, devPartner, succ, oc, seqMode, formulas), [site, scope, T, inpSZ, inpBJ, lv, devPartner, succ, oc, seqMode, formulas]);
         const viewport = useViewport();
         const isWide = viewport >= 1080;
         const fmt = (v) => Math.abs(v) >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : `$${(v / 1e3).toFixed(0)}K`;
@@ -669,6 +927,7 @@
         const S = createStyles(viewport);
         const moneyLevers = LEVERS.filter((d) => d.grp !== "분모" || d.k === "c1");
         const maxAbs = Math.max(...moneyLevers.map((d) => Math.abs(R.parts[d.k] || 0)), 1);
+        const formulaErrorList = Array.from(new Set([...(R.formulaErrors || []), ...(D.errors || [])]));
         const grp = {
             B1: ["b1", "b1b", "b2a", "b2c", "m1a", "w3", "w4", "g1", "m3", "m3v", "rx", "rpm", "w1", "w5", "f1", "c1", "kappa"].reduce((a, k) => a + (R.parts[k] || 0), 0),
             B2: R.parts.b2b + R.parts.ai, B3: R.parts.b3 || 0, 게이트: R.parts.rcm + (R.parts.opex || 0),
@@ -1036,7 +1295,60 @@
                     )}
                 </div>
 
+                <div style={{...S.card, ...S.rightPane}}>
+                    <div style={{...S.cardHead, ...S.panelHead}} onClick={() => togglePanel("formulas")}>
+                        <span style={S.panelHeadLabel}><Link2 size={13}/> 계산식 수동 편집</span>
+                        <ChevronDown size={13} style={{transform: panelOpen.formulas ? "none" : "rotate(-90deg)", transition: "transform .2s"}}/>
+                    </div>
+                    {panelOpen.formulas && (
+                        <>
+                            <div style={S.formulaToolbar}>
+                                <button style={S.formulaBtn} onClick={() => setFormulas(FORMULA_DEFAULTS)}>전체 기본식 복원</button>
+                                <div style={{...S.formulaStatus, color: formulaErrorList.length ? "#E06C75" : "#4FD1C5"}}>
+                                    {formulaErrorList.length ? `오류 ${formulaErrorList.length}건` : "모든 계산식 정상"}
+                                </div>
+                            </div>
+                            <div style={S.formulaNote}>Vista v3.3의 기존 계산식을 그대로 노출한 편집 패널입니다. 수식 오류가 나면 해당 항목만 기본식으로 fallback 됩니다.</div>
+                            <div style={S.formulaGrid}>
+                                {Array.from(new Set(FORMULA_META.map((item) => item.group))).map((group) => (
+                                    <React.Fragment key={group}>
+                                        <div style={S.formulaGroup}>{group}</div>
+                                        {FORMULA_META.filter((item) => item.group === group).map((item) => (
+                                            <div key={item.key} style={S.formulaCell}>
+                                                <div style={S.formulaCellHead}>
+                                                    <div style={S.inputLabel}>{item.label}</div>
+                                                    <button
+                                                        style={S.formulaMiniBtn}
+                                                        onClick={() => setFormulas((prev) => ({...prev, [item.key]: FORMULA_DEFAULTS[item.key]}))}
+                                                    >
+                                                        기본식
+                                                    </button>
+                                                </div>
+                                                <div style={S.formulaHelp}>
+                                                    <div><span style={S.formulaHelpLabel}>의미</span>{(FORMULA_HELP[item.key] || [])[0] || "Vista 핵심 계산식"}</div>
+                                                    <div><span style={S.formulaHelpLabel}>변수</span>{formulaVarSummary(item.key, formulas)}</div>
+                                                    <div><span style={S.formulaHelpLabel}>반영</span>{(FORMULA_HELP[item.key] || [])[1] || "대시보드 전반에 반영"}</div>
+                                                </div>
+                                                <textarea
+                                                    spellCheck={false}
+                                                    style={S.formulaTextarea}
+                                                    value={formulas[item.key]}
+                                                    onChange={(e) => setFormulas((prev) => ({...prev, [item.key]: e.target.value}))}
+                                                />
+                                            </div>
+                                        ))}
+                                    </React.Fragment>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
+
                 <div style={{...S.warnBox, ...S.fullSpan}}>
+                    {formulaErrorList.length > 0 && (
+                        <div style={S.warn}><TriangleAlert size={12} style={{flexShrink: 0, marginTop: 1}}/>
+                            <span>계산식 오류 {formulaErrorList.length}건 — 해당 항목은 Vista 기본식으로 계산했습니다: {formulaErrorList.slice(0, 3).join(" / ")}{formulaErrorList.length > 3 ? " ..." : ""}</span></div>
+                    )}
                     <div style={S.warn}><TriangleAlert size={12} style={{flexShrink: 0, marginTop: 1}}/>
                         <span>북경 열 전부 [ASS] — 실사 확인 전 별표. ARPU·원가 [ASS] — 대외 프라이싱 금지. 보고는 밴드로만.</span></div>
                     <div style={S.warn}><TriangleAlert size={12} style={{flexShrink: 0, marginTop: 1}}/>
@@ -1046,7 +1358,7 @@
                 </div>
 
                 <div style={{...S.footer, ...S.fullSpan}}>
-                    v3.3 — §11 JV 구조를 실제 term sheet로 교체(대칭 이중 라이선싱, 로열티10%) · 5개년 동적 프로젝션에 순차확장 모드 추가(Y1외래→Y2검진→Y3기업, 합산 도메인 전용) — 기존 고정범위 모드와 토글 전환.
+                    v3.3 — §11 JV 구조를 실제 term sheet로 교체(대칭 이중 라이선싱, 로열티10%) · 5개년 동적 프로젝션에 순차확장 모드 추가(Y1외래→Y2검진→Y3기업, 합산 도메인 전용) · Vista 핵심 계산식 수동 편집 패널 및 오류 fallback 추가.
                 </div>
             </div>
         );
@@ -1142,6 +1454,18 @@
         input: {flex: 1, background: "transparent", border: "none", color: "#f0f3f9", fontSize: 13, padding: "8px 0", outline: "none", fontFamily: "ui-monospace, monospace", width: "100%"},
         inputUnit: {fontSize: 10, color: "#5b6577", marginLeft: 4},
         inputFoot: {gridColumn: "1 / -1", fontSize: 9, color: "#5b6577", lineHeight: 1.5, marginTop: 4},
+        formulaToolbar: {display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 9, flexWrap: "wrap"},
+        formulaBtn: {border: "1px solid #3a4558", background: "#1e2636", color: "#f0f3f9", borderRadius: 7, padding: "6px 9px", fontSize: 10, fontWeight: 800, cursor: "pointer"},
+        formulaMiniBtn: {border: "1px solid #2a3140", background: "#0d1017", color: "#8792a6", borderRadius: 6, padding: "3px 6px", fontSize: 9, fontWeight: 800, cursor: "pointer"},
+        formulaStatus: {fontSize: 9.5, fontFamily: "ui-monospace, monospace"},
+        formulaNote: {fontSize: 9, color: "#7a859a", lineHeight: 1.45, marginBottom: 10},
+        formulaGrid: {display: "grid", gridTemplateColumns: "1fr", gap: 8},
+        formulaGroup: {fontSize: 9, color: "#FF9F43", fontWeight: 900, letterSpacing: 0.4, marginTop: 4},
+        formulaCell: {minWidth: 0},
+        formulaCellHead: {display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 3},
+        formulaHelp: {background: "#0d1017", border: "1px solid #1a2029", borderRadius: 7, padding: "6px 8px", marginBottom: 5, fontSize: 9, color: "#8792a6", lineHeight: 1.45},
+        formulaHelpLabel: {display: "inline-block", minWidth: 28, color: "#4FD1C5", fontWeight: 900, fontFamily: "ui-monospace, monospace"},
+        formulaTextarea: {width: "100%", minHeight: 44, resize: "vertical", background: "#0d1017", border: "1px solid #232a38", borderRadius: 7, color: "#f0f3f9", padding: "7px 8px", outline: "none", fontSize: 11, lineHeight: 1.35, fontFamily: "ui-monospace, monospace"},
         warnBox: {display: "flex", flexDirection: "column", gap: 7, marginBottom: 12},
         warn: {
             display: "flex",
