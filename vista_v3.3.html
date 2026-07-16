@@ -1061,7 +1061,7 @@
 
                 <div style={{...S.chips, ...S.leftPane}}>
                     {Object.entries(GRP_META).map(([k, m]) => (
-                        <div key={k} style={{...S.chip, borderColor: m.color + "55"}}>
+                        <div key={k} style={{...S.chip, borderTopColor: m.color + "55", borderRightColor: m.color + "55", borderBottomColor: m.color + "55", borderLeftColor: m.color + "55"}}>
                             <div style={{...S.chipDot, background: m.color}}/>
                             <div style={S.chipName}>{m.name}</div>
                             <div style={{...S.chipVal, color: m.color}}>{sign(grp[k] * 12)}{fmt(Math.abs(grp[k] * 12))}</div>
@@ -1394,15 +1394,15 @@
         kicker: {fontSize: 9, letterSpacing: 1.2, color: "#5b6577", fontWeight: 800, fontFamily: "ui-monospace, monospace", marginBottom: 3},
         title: {fontSize: 16.5, fontWeight: 800, color: "#f0f3f9", lineHeight: 1.25},
         segRow: {display: "grid", gridTemplateColumns: compact ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: 6, marginBottom: 10},
-        seg: {flex: 1, background: "#12161f", border: "1px solid #232a38", color: "#8792a6", borderRadius: 9, padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: "pointer"},
-        segSm: {flex: 1, background: "#12161f", border: "1px solid #232a38", color: "#8792a6", borderRadius: 9, padding: "7px 0", fontSize: 11, fontWeight: 700, cursor: "pointer"},
-        segOn: {background: "#20304F", color: "#CFE0FF", borderColor: "#3a4d78"},
+        seg: {flex: 1, background: "#12161f", borderWidth: 1, borderStyle: "solid", borderTopColor: "#232a38", borderRightColor: "#232a38", borderBottomColor: "#232a38", borderLeftColor: "#232a38", color: "#8792a6", borderRadius: 9, padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: "pointer"},
+        segSm: {flex: 1, background: "#12161f", borderWidth: 1, borderStyle: "solid", borderTopColor: "#232a38", borderRightColor: "#232a38", borderBottomColor: "#232a38", borderLeftColor: "#232a38", color: "#8792a6", borderRadius: 9, padding: "7px 0", fontSize: 11, fontWeight: 700, cursor: "pointer"},
+        segOn: {background: "#20304F", color: "#CFE0FF", borderTopColor: "#3a4d78", borderRightColor: "#3a4d78", borderBottomColor: "#3a4d78", borderLeftColor: "#3a4d78"},
         mxGrid: {display: "grid", gridTemplateColumns: compact ? "64px 1fr 1fr 1fr" : "78px 1fr 1fr 1fr", gap: 5},
         mxCorner: {},
         mxColHead: {fontSize: 10, color: "#8792a6", fontWeight: 800, textAlign: "center", padding: "4px 0"},
         mxRowHead: {fontSize: 10, color: "#8792a6", fontWeight: 800, display: "flex", alignItems: "center"},
-        mxCell: {background: "#0d1017", border: "1px solid #232a38", borderRadius: 9, padding: "11px 4px", textAlign: "center", transition: "all .15s", appearance: "none", width: "100%", margin: 0, outline: "none", boxShadow: "none", WebkitTapHighlightColor: "transparent"},
-        mxCellOn: {background: "#16302e", borderColor: "#2E7D6E"},
+        mxCell: {background: "#0d1017", borderWidth: 1, borderStyle: "solid", borderTopColor: "#232a38", borderRightColor: "#232a38", borderBottomColor: "#232a38", borderLeftColor: "#232a38", borderRadius: 9, padding: "11px 4px", textAlign: "center", transition: "all .15s", appearance: "none", width: "100%", margin: 0, outline: "none", boxShadow: "none", WebkitTapHighlightColor: "transparent"},
+        mxCellOn: {background: "#16302e", borderTopColor: "#2E7D6E", borderRightColor: "#2E7D6E", borderBottomColor: "#2E7D6E", borderLeftColor: "#2E7D6E"},
         mxCellDis: {background: "#0d1017", borderStyle: "dashed", opacity: 0.55},
         hero: {background: "#12161f", border: "1px solid #232a38", borderRadius: 14, padding: "16px 14px", marginBottom: 10, textAlign: "center"},
         heroLabel: {fontSize: 10, color: "#7a859a", fontWeight: 700, marginBottom: 4},
@@ -1416,7 +1416,7 @@
         bandZero: {position: "absolute", top: -4, width: 1, height: 14, background: "#5b6577"},
         bandLabels: {display: "flex", justifyContent: "space-between", fontSize: 10, color: "#5b6577", marginTop: 7, fontFamily: "ui-monospace, monospace"},
         chips: {display: "grid", gridTemplateColumns: compact ? "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: 6, marginBottom: 14},
-        chip: {background: "#12161f", border: "1px solid", borderRadius: 11, padding: "9px 8px"},
+        chip: {background: "#12161f", borderWidth: 1, borderStyle: "solid", borderTopColor: "#232a38", borderRightColor: "#232a38", borderBottomColor: "#232a38", borderLeftColor: "#232a38", borderRadius: 11, padding: "9px 8px"},
         chipDot: {width: 7, height: 7, borderRadius: 4, marginBottom: 5},
         chipName: {fontSize: 8.5, color: "#8792a6", fontWeight: 700, lineHeight: 1.2, height: 22},
         chipVal: {fontSize: 12.5, fontWeight: 800, fontFamily: "ui-monospace, monospace", marginTop: 2},
