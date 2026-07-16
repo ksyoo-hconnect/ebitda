@@ -607,7 +607,7 @@
             const spokeIdx = seq ? y - 3 : y - 1;              // 순차모드: Y3=스케줄[0](앵커)
             const scheduleValue = entOK && entBaseActive ? SCHED[Math.max(0, Math.min(spokeIdx, SCHED.length - 1))] : 0;
             const spokes = safeEvalFormula("dynSpokes", formulas, {
-                b3Active: entBaseActive ? 1 : 0,
+                entActive: entBaseActive ? 1 : 0,
                 scheduleValue
             }, errors, FORMULA_DEFAULTS.dynSpokes);
             const prevSpokeIdx = spokeIdx - 1;
@@ -766,7 +766,7 @@
         denialCost: "-insNew * insShare * (1 - succRate)",
         loopOpexStatic: "fixed + perSite * sitesN + perLife * m3Lives",
         churnEff: "churn0 * (1 - rpmActive * m3Active * rpmAdopt * delta)",
-        dynSpokes: "b3Active * scheduleValue",
+        dynSpokes: "entActive * scheduleValue",
         dynSpokeCohort: "m3Active * entOKActive * max(0, spokes - prevSpokes) * spokeEmp * 0.15 * spokeEnroll / 12 * visitShare",
         dynLoopOpex: "fixed * pow(1.03, year - 1) + perSite * sitesN + perLife * m3Lives",
     };
@@ -804,7 +804,7 @@
         denialCost: ["청구 실패로 빠지는 금액 식입니다.", "게이트 차감과 순 ΔEBITDA에 반영됩니다."],
         loopOpexStatic: ["현재 시점 Loop 운영비 식입니다.", "opex, payback, 순 ΔEBITDA에 반영됩니다."],
         churnEff: ["5개년 저수지의 유효 churn 식입니다.", "M3 스톡 누적과 cumulative ΔEBITDA에 반영됩니다."],
-        dynSpokes: ["연도별 기업 스포크 수 식입니다.", "기업 분모, B3, C1, 스포크 코호트에 반영됩니다."],
+        dynSpokes: ["연도별 기업 스포크 수 식입니다.", "기업 분모, B3, C1, R1, 스포크 코호트에 반영됩니다."],
         dynSpokeCohort: ["신규 전환 스포크가 M3로 유입되는 코호트 식입니다.", "5개년 M3 스톡과 M3 매출에 반영됩니다."],
         dynLoopOpex: ["연도별 Loop 운영비 식입니다.", "5개년 net과 cumulative ΔEBITDA에 반영됩니다."],
     };
@@ -812,7 +812,7 @@
     const FORMULA_VAR_HELP = {
         abnRate: "이상소견 비율", aiSpan: "AI 적용 span", arpu: "외래 ARPU", billConv: "무상→청구 전환율", b3Active: "B3 레버 ON=1/OFF=0",
         cannib: "잠식률", consultFee: "상담 청구 단가", corpScreens: "기업 유입 검진 수", corpScrPen: "기업 검진 침투율", delta: "RPM churn 완충 계수",
-        effectiveEap: "유효 기업 분모", entOKActive: "합산×③ 조건 충족 플래그", fixed: "플랫폼 고정비", fuRecover: "FU 회복률", insShare: "보험청구 비중",
+        effectiveEap: "유효 기업 분모", entActive: "B3/C1/R1 중 하나라도 ON인 상태", entOKActive: "합산×③ 조건 충족 플래그", fixed: "플랫폼 고정비", fuRecover: "FU 회복률", insShare: "보험청구 비중",
         m3Active: "M3 레버 ON=1/OFF=0", m3Fee: "M3 관리료 단가", m3Lives: "M3 스톡", mgrCost: "케어매니저 월비용", missedRate: "FU 미방문율",
         monthlyUnbilled: "월 무상 상담 수", occ: "가동률 gate", pepm: "기업 PEPM", perLife: "M3 1인당 opex", perSite: "사이트당 opex", prevSpokes: "전년 스포크 수",
         reExam: "재검 이행률", rpmActive: "RPM 레버 ON=1/OFF=0", rpmAdopt: "RPM 적용률", rpmDevCost: "기기 상각/조달비", rpmFee: "RPM 월 수익", scheduleValue: "스케줄상 스포크 수",
@@ -932,6 +932,9 @@
         const moneyLevers = LEVERS.filter((d) => d.grp !== "분모" || d.k === "c1");
         const maxAbs = Math.max(...moneyLevers.map((d) => Math.abs(R.parts[d.k] || 0)), 1);
         const formulaErrorList = Array.from(new Set([...(R.formulaErrors || []), ...(D.errors || [])]));
+        const spanBaseText = site === "comb"
+            ? `${inpSZ.spanBase}/${inpBJ.spanBase}`
+            : String((site === "sz" ? inpSZ : inpBJ).spanBase);
         const grp = {
             B1: ["b1", "b1b", "b2a", "b2c", "m1a", "w3", "w4", "g1", "m3", "m3v", "rx", "rpm", "w1", "w5", "f1", "c1", "kappa"].reduce((a, k) => a + (R.parts[k] || 0), 0),
             B2: R.parts.b2b + R.parts.ai, B3: R.parts.b3 || 0, 게이트: R.parts.rcm + (R.parts.opex || 0),
@@ -1154,7 +1157,7 @@
                     </div>
                     {!seqMode && !(site === "comb" && scope >= 3 && lv.b3) && (
                         <div style={{background: "#2a2416", border: "1px solid #4a3f1f", borderRadius: 8, padding: "7px 10px", fontSize: 10, color: "#E8C97B", marginBottom: 10, lineHeight: 1.45}}>
-                            💡 고정범위 모드에서 스포크 궤적을 보려면: ① 매트릭스에서 <b>합산 × ③+기업</b> 선택 → ② 레버 보드에서 <b>B3·C1 ON</b>.
+                            💡 고정범위 모드에서 스포크 궤적을 보려면: ① 매트릭스에서 <b>합산 × ③+기업</b> 선택 → ② 레버 보드에서 <b>B3·C1·R1 중 하나 이상 ON</b>.
                         </div>
                     )}
                     {seqMode && site !== "comb" && (
@@ -1262,7 +1265,7 @@
                         </div>
                         <div style={{...S.leverVal, color: "#A87BE8"}}>RPM {sign(R.parts.rpm * 12)}{fmt(Math.abs(R.parts.rpm * 12))}</div>
                     </div>
-                    <div style={S.lamNote}>AI 케어매니저(B2b): span {inpSZ.spanBase}→{T.aiSpan}명/인 — M3 스톡 {R.m3Lives.toFixed(0)}명의 증원 회피 = {sign(R.parts.ai * 12)}{fmt(Math.abs(R.parts.ai * 12))}/년. 코디네이션만 대체
+                    <div style={S.lamNote}>AI 케어매니저(B2b): span {spanBaseText}→{T.aiSpan}명/인 — M3 스톡 {R.m3Lives.toFixed(0)}명의 증원 회피 = {sign(R.parts.ai * 12)}{fmt(Math.abs(R.parts.ai * 12))}/년. 코디네이션만 대체
                         — physician-supervised (가드레일 9).
                     </div>
                     </>}
