@@ -646,6 +646,7 @@
         const inp = editSite === "sz" ? inpSZ : inpBJ;
         const setInp = editSite === "sz" ? setInpSZ : setInpBJ;
         const set = (k) => (e) => setInp({...inp, [k]: parseFloat(e.target.value) || 0});
+        const clearButtonFocus = (e) => e.currentTarget.blur();
         const bandLo = Math.min(band.lo, 0), bandHi = Math.max(band.hi, netY, 1);
         const pos = (v) => `${clamp(((v - bandLo) / (bandHi - bandLo)) * 100, 0, 100)}%`;
         const toggle = (k) => setLv({...lv, [k]: !lv[k]});
@@ -664,7 +665,10 @@
                 <style>{`*{box-sizing:border-box;} input[type=number]{-moz-appearance:textfield;}
             input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
             .seg:hover{background:#1c2230;} .lv:active{transform:scale(.99);}
-            input[type=range]{accent-color:#FF9F43;}`}</style>
+            input[type=range]{accent-color:#FF9F43;}
+            .seg:focus{outline:none;box-shadow:none;}
+            .seg:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(79,209,197,.28);}
+            .mx-btn:focus,.mx-btn:focus-visible{outline:none;box-shadow:none;}`}</style>
 
                 <div style={S.header}>
                     <div>
@@ -675,7 +679,7 @@
 
                 <div style={S.segRow}>
                     {Object.keys(TIERS).map((s) => (
-                        <button key={s} className="seg" onClick={() => setTier(s)} style={{...S.seg, ...(tier === s ? S.segOn : {})}}>{TIERS[s].label}</button>
+                        <button key={s} className="seg" onClick={() => setTier(s)} onMouseUp={clearButtonFocus} onTouchEnd={clearButtonFocus} style={{...S.seg, ...(tier === s ? S.segOn : {})}}>{TIERS[s].label}</button>
                     ))}
                 </div>
 
@@ -693,11 +697,14 @@
                                     const dis = v === null;
                                     const sel = site === s.id && scope === sc.n;
                                     return (
-                                        <div key={sc.n} onClick={() => !dis && (setSite(s.id), setScope(sc.n))}
-                                             style={{...S.mxCell, ...(sel ? S.mxCellOn : {}), ...(dis ? S.mxCellDis : {}), cursor: dis ? "default" : "pointer"}}>
+                                        <button key={sc.n} type="button" className="mx-btn" disabled={dis}
+                                                onClick={() => !dis && (setSite(s.id), setScope(sc.n))}
+                                                onMouseUp={clearButtonFocus}
+                                                onTouchEnd={clearButtonFocus}
+                                                style={{...S.mxCell, ...(sel ? S.mxCellOn : {}), ...(dis ? S.mxCellDis : {}), cursor: dis ? "default" : "pointer"}}>
                                             {dis ? <span style={{fontSize: 8, color: "#4a5468"}}>합산에서만</span>
                                                 : <span style={{fontFamily: "ui-monospace, monospace", fontWeight: sel ? 800 : 600, fontSize: 11.5, color: sel ? "#4FD1C5" : "#a9b3c6"}}>{fmt(v)}</span>}
-                                        </div>
+                                        </button>
                                     );
                                 })}
                             </React.Fragment>
@@ -966,7 +973,7 @@
                         <>
                             <div style={{display: "flex", gap: 6, marginBottom: 10}}>
                                 {[{id: "sz", l: "심천 [DR]"}, {id: "bj", l: "북경 [ASS]"}].map((s) => (
-                                    <button key={s.id} className="seg" onClick={() => setEditSite(s.id)} style={{...S.segSm, ...(editSite === s.id ? S.segOn : {})}}>{s.l}</button>
+                                    <button key={s.id} className="seg" onClick={() => setEditSite(s.id)} onMouseUp={clearButtonFocus} onTouchEnd={clearButtonFocus} style={{...S.segSm, ...(editSite === s.id ? S.segOn : {})}}>{s.l}</button>
                                 ))}
                             </div>
                             <div style={S.inputGrid}>
@@ -1026,7 +1033,7 @@
         mxCorner: {},
         mxColHead: {fontSize: 10, color: "#8792a6", fontWeight: 800, textAlign: "center", padding: "4px 0"},
         mxRowHead: {fontSize: 10, color: "#8792a6", fontWeight: 800, display: "flex", alignItems: "center"},
-        mxCell: {background: "#0d1017", border: "1px solid #232a38", borderRadius: 9, padding: "11px 4px", textAlign: "center", transition: "all .15s"},
+        mxCell: {background: "#0d1017", border: "1px solid #232a38", borderRadius: 9, padding: "11px 4px", textAlign: "center", transition: "all .15s", appearance: "none", width: "100%", margin: 0, outline: "none", boxShadow: "none", WebkitTapHighlightColor: "transparent"},
         mxCellOn: {background: "#16302e", borderColor: "#2E7D6E"},
         mxCellDis: {background: "#0d1017", borderStyle: "dashed", opacity: 0.55},
         hero: {background: "#12161f", border: "1px solid #232a38", borderRadius: 14, padding: "16px 14px", marginBottom: 10, textAlign: "center"},
