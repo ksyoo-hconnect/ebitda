@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loop EBITDA Model v3.3 VISTA</title>
+</head>
+<body style="margin: 0; padding: 0; background: #0d1017;">
+<div id="root"></div>
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel">
+    if (!window.React || !window.ReactDOM) {
+        document.getElementById("root").innerHTML = "React or ReactDOM failed to load from CDN.";
+        throw new Error("React or ReactDOM failed to load from CDN.");
+    }
+
+    const {useEffect, useMemo, useState} = React;
+
+    function useViewport() {
+        const getWidth = () => (typeof window === "undefined" ? 480 : window.innerWidth);
+        const [width, setWidth] = useState(getWidth);
+        useEffect(() => {
+            const onResize = () => setWidth(getWidth());
+            window.addEventListener("resize", onResize);
+            return () => window.removeEventListener("resize", onResize);
+        }, []);
+        return width;
+    }
+
+    function InlineIcon({children, size = 13, color = "currentColor"}) {
+        return (
+            <span
+                aria-hidden="true"
+                style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: size,
+                    height: size,
+                    color,
+                    fontSize: size,
+                    lineHeight: 1,
+                    flexShrink: 0,
+                }}
+            >
+              {children}
+            </span>
+        );
+    }
+
+    const Power = (props) => <InlineIcon {...props}>⏻</InlineIcon>;
+    const Cpu = (props) => <InlineIcon {...props}>⏻</InlineIcon>;
+    const TriangleAlert = (props) => <InlineIcon {...props}>!</InlineIcon>;
+    const Link2 = (props) => <InlineIcon {...props}>↔</InlineIcon>;
+    const Layers = (props) => <InlineIcon {...props}>≡</InlineIcon>;
+    const Building2 = (props) => <InlineIcon {...props}>▦</InlineIcon>;
+    const Activity = (props) => <InlineIcon {...props}>⌁</InlineIcon>;
+    const HardDrive = (props) => <InlineIcon {...props}>⌁</InlineIcon>;
+    const Grid3X3 = (props) => <InlineIcon {...props}>⌁</InlineIcon>;
+    const ChevronDown = (props) => <InlineIcon {...props}>⌁</InlineIcon>;
+    const AlertTriangle = (props) => <InlineIcon {...props}>⌁</InlineIcon>;
+
+    // (위 설명서 헤더가 여기 위치)
+    /* ═══════════════════════════════════════════════════════════════════════
+     * 인바이츠 루프 OS · Vista형 외래병원 ΔEBITDA 시뮬레이터 · v2.5
+     * 팀 설명서 (헤더판) — 미국 본토 모델(ebitda-engine v3.5)과 레이아웃·용어 동형
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * §0 용어집
+     * ─────────────────────────────────────────────────────────────────────
+     * [경로·구조]
+     *   W        Wellness/관문 — 건강검진 단계 (환자 여정의 입구)
+     *   M1       외래 진료 단계
+     *   M2       입원·퇴원 단계 (외래 모델엔 없음 — 상급병원 연계로만 접촉)
+     *   M3       진료 후 지속관리 단계 (만성 관리, recurring)
+     *   S1/S2/S3 도입 범위(scope): ①외래만 / ②+검진 / ③+기업위탁
+     *   B1/B2/B3 수익 레이어: B1=직접수익(청구 현금) B2=운영효율(원가·인력)
+     *            B3=가치·플랫폼(기업 구독) — 미국 모델과 동일 정의
+     * [재무·지표]
+     *   EBITDA   이자·세금·상각 전 이익 / ΔEBITDA = Loop 도입 개선분(산출물)
+     *   ARPU     방문 1회당 평균 매출 (진료+검사+약제)
+     *   FFS      Fee-for-Service, 행위별 수가 (건당 과금)
+     *   PEPM     Per-Employee-Per-Month, 기업의 직원 1인당 월 구독료
+     *   CAC/LTV  고객 획득 비용 / 고객 생애 가치
+     *   occGate  가동률 게이트 — 슬롯 여유가 있어야 회복 방문이 매출 (0~1)
+     *   cannib   잠식률 — 원격 방문 중 '어차피 올 환자의 대체' 비중 (순증 차감)
+     *   κ(카파)  교차 리프트 — 레버 간 행동 시너지 승수. 기본 0, 실측 전제
+     *   denial   보험 청구 거절 — 실현율 게이트가 차감하는 손실
+     * [케어·청구]
+     *   FU            Follow-Up, 예정된 재방문
+     *   케어갭        임상적으로 받아야 하는데 안 받은 검사·처치
+     *   RCM           Revenue Cycle Mgmt — 시행 케어의 완전 청구·회수 (B1d 레버,
+     *                 미국 모델과 동일 용어)
+     *   clean-claim   거절 사유 없는 완결 청구 (문서·코드·승인 완비)
+     *   GOP           Guarantee of Payment, 보험사 사전 지급보증
+     *   charge capture 시행 항목의 청구 누락 방지
+     *   EAP           Employee Assistance Program, 기업 임직원 건강지원
+     *   RPM           Remote Patient Monitoring, 기기 기반 원격 모니터링
+     *   APCM/TCM      미국 Medicare 월정액 관리료/퇴원 전환관리료.
+     *                 본 모델 M3 관리료 ≈ APCM, G1 ≈ TCM의 외래판
+     *   CPT/ICD       미국식 처치/진단 코드 (Vista 청구가 CPT 참조 운영 [DR])
+     * [Loop OS 구성요소]
+     *   IRS+     위험 스코어링 엔진 (숨은 만성 발굴·케어갭 탐지)
+     *   SiBC/JITAI 행동개입 엔진/적시 개입 (리마인더·아웃리치 자동화)
+     *   iCHMS    재무 귀속 엔진 (개입→성과→금액 closed-loop)
+     *   span     케어매니저 1인 관리 환자 수 — AI가 확대
+     * [데이터 신뢰도]
+     *   [DR]     Data Room — 실사 검증 실측 (레퍼런스: Vista 심천 2026.06 1차)
+     *   [ASS]    Assumption — 합리적 추정 (근거 = 우리 판단뿐)
+     *   [PENDING] 사실관계 미확인 (라이선스·협의·규제)
+     * [규제·기관]
+     *   NMPA     중국 국가약품감독관리국 (의료기기·SaMD 인허가)
+     *   PIPL     중국 개인정보보호법 (국경간 데이터 이전)
+     *   互联网医院 인터넷병원 라이선스 — 원격진료 합법 청구의 전제
+     *   HGR      인간유전자원 규제 (Non-Genomics 경로로 우회)
+     *   PoC/FI/EMR 개념검증 시범계약 / 재무적 투자자 / 전자의무기록
+     *
+     * §1 목적
+     *   Vista형 외래병원(상업보험+기업채널+검진병설)의 실측치를 입력하면 Loop 도입 시
+     *   연간 EBITDA 개선을 레버 단위로 추정. 레버 개별 ON/OFF로 단계적 도입·미실행을
+     *   즉시 반영 — 레버별 기여·순ΔEBITDA 실시간.
+     *   철학: 환자 경로(W→M1→M3)를 따라 ①케어-청구 누수를 구조적으로 제거(기존 수가)
+     *   ②측정 가능해진 성과를 새 수가로 상품화(신규 수가). 대외 표현 = \"문서화 완결
+     *   청구·측정 가능한 케어\" (extraction 프레임 금지).
+     *
+     * §2 레버 (22)
+     *   [B1 직접수익 — 누수 제로화 8]
+     *     B1a 원격케어 순증 (잠식 차감) · B1b 무상케어 청구화(24h핫라인·결과상담)
+     *     B1c FU 미방문 회복 (×occGate) · B1d RCM 청구완결(capture+삭감회수)
+     *     M1a 케어갭 시행(할 것을 하게 — B1d의 '한 것 청구'와 별개 층)
+     *     W3 재검 이행 · W4 유소견→전문의 외래 · G1 상급병원 복귀 케어(≈TCM,
+     *     리퍼럴fee 아님 — 리베이트 금지 준수)
+     *   [B1 직접수익 — 신규 수가 7]
+     *     M3 만성 관리료(≈APCM, recurring 심장) · M3v 신규 lives FU방문(별개 수가)
+     *     Rx 약국 refill(의약 미분리 [DR]) · RPM 원격모니터링(파트너십 ON=기기상각 0)
+     *     W1 검진 upsell · W5 M3→W 순환검진(루프의 완성) · F1 가족 확산(CAC 0)
+     *   [B2 운영효율 2]
+     *     B2a 코디 자동화(반복 80% [DR], 전환배치 전제)
+     *     B2b AI 케어매니저(span 50→120~200, M3 성장분 증원 회피 — B2a와 풀 분리)
+     *   [B3 가치·플랫폼 1]  B3 기업 EAP PEPM (주 레버, TFT 확정 방향)
+     *   [분모 확장 3 — lives/명 단위, 매출 아님]
+     *     W2 유소견→M3 전환 · C1 기업→검진 유입 · R1 역방향 리드(플라이휠)
+     *   [게이트 1]  실현율 게이트(denial) — OFF 시 신규 보험청구에 무대책 거절률
+     *     전액 차감. 레버가 아니라 곱셈 계수 (미국 'RCM 레버'와 별개념)
+     *
+     * §3 승수·의존성
+     *   의존성 자동 전파: M3 OFF → M3v·Rx·RPM·W5·W2·F1 무효. scope 미달 강제 OFF.
+     *   κ₁(B1a→B1c): 원격 옵션이 미방문 사유 1위 '업무 바쁨' [DR] 해소 → 회복률 리프트
+     *   κ₂(RPM→M3계열): 기기 데이터가 이탈·순응 개선 → (Rx+W5) 리프트
+     *   κ 기본 0 — Pilot 실측 H₀:κ≤0 검정 전 0 유지 (미국 λ·κ 독트린 승계).
+     *   구조적 연결(M3 파생·C1→W2→M3 퍼널)은 수식 명시 — κ와 혼동 금지.
+     *
+     * §3.5 용어 통일 (미국 v3.5와 동기화)
+     *   구 B2a(FU회복)→B1c · 구 B2c(청구완결)→B1d·RCM(동일 개념·동일 용어)
+     *   구 RCM 게이트→실현율 게이트(denial) — 동어이의 해소
+     *   구 B2b(코디자동화)→B2a · AI→B2b · capGate 표기→occGate
+     *   M3 관리료≈APCM · G1≈TCM 외래판 · κ/RPM/W·M 경로는 기존 일치
+     *
+     * §4 가드레일 11칙 (이중계상·과대 방지)
+     *   1 W2·C1·R1은 lives로만  2 원격케어 잠식 차감  3 B1b↔B1a 배타
+     *   4 M3v=신규분만(B1c 배타)  5 W4↔W2 동일인 별개 수가  6 밴드 보고(point 금지)
+     *   7 M3 OFF→파생 무효  8 실현율 100% 가정 금지  9 B2a↔B2b 인력풀 분리
+     *   10 RPM 파트너십 대가는 별도 계약(공짜 아님)  11 구조연결↔κ 구분(κ 기본 0)
+     *   12.5 [v2.5] 3×3 매트릭스 도메인: 행=사이트(심천/북경/합산) × 열=범위(①②③).
+     *      셀 선택 = 분석 도메인 전환. 사이트 행의 ③열은 비활성 — 기업은 네트워크
+     *      자산이라 합산×③에서만 계산(이중계상 방지). 입력은 사이트별 분리 저장.
+     *   13 [v2.6] Loop 비용: opex(플랫폼 고정+사이트당+M3 인당)는 ΔEBITDA에서 차감,
+     *      capex는 EBITDA 밖 — 회수기간(payback)만. 라이선스료 없음(JV 판권 현물출자,
+     *      정산구조 [PENDING]). opex 인건비 = M3 기본 스톡 운영분 — B2b 증원회피와
+     *      중복 금지. 게이트 명칭 = 청구성공률(ON 93%/OFF 80% [ASS], 레인지 조절).
+     *   14 [v3.1] M3↔B1a 청구 경계: M3 등록 lives 대상 원격접촉은 관리료에 포함 —
+     *      B1a(tele) 별도 청구 금지. 모델 산식은 분모가 달라(B1a=방문 볼륨, M3=lives
+     *      스톡) 겹치지 않으나, 실무 청구에서 겹칠 수 있음 → Pilot 청구 SOP 필수 조항.
+     *      개념 구분: M3=관리한다는 계약(구독) · M3v=진료했다는 행위(FFS) ·
+     *      RPM=기기로 지켜본다는 수단(모니터링료) — 3층 병존, 중복 아님 (美 CCM+E/M+RPM 동형).
+     *   12 기업 레버(B3·C1·R1) 기본 OFF — 안정화 조건부 [v2.4]. Loop 안정 가동 + Pilot
+     *      계수 [DR] 검증 전 위탁 고객 대상 전개 금지. 실패 시 기존 오프라인 위탁 매출
+     *      (33개사)이 이탈하는 비대칭 리스크 — upside이기 전에 기존 매출의 인질.
+     *      기업 분모는 네트워크 자산 — 사이트별 프리셋에 중복 배정 금지(북경 eap=0),
+     *      통합 계산 시 B3·C1은 1회만.
+     *
+     * §5 사용 절차
+     *   ①프리셋(신규 사이트=실사값) ②tier: 기본=제시값·보수=방어선 ③범위 선택
+     *   ④실행 계획대로 레버 ON/OFF (예: Pilot=B1a·B1c·B2a·게이트만)
+     *   ⑤hero 연간 순ΔEBITDA·밴드 + 4칩 레이어 확인 ⑥보고는 항상 밴드.
+     *   온보딩 최소 실사 세트: 연 방문·환자수/페이어 믹스/세그먼트별 ARPU/FU 미방문율
+     *   /가동률/만성 비중/검진·패키지 분포/무상 상담량/삭감·거절률/재검 이행률
+     *   /위탁기업 수·직원수/고정비·가변비.
+     *
+     * §6 정직성 규율 · 규제 포지셔닝
+     *   ARPU·검진단가·원가 [ASS] 상태 대외 프라이싱 금지 (2차 실사 선행).
+     *   B3·C1·R1·F1 = 계약 0건 가설 — 앵커 PoC 1건이 [DR] 조건.
+     *   RPM·기기 파트너십 [PENDING: NMPA·Vista협의·PIPL] — 해제 전 확정 금지.
+     *   AI는 코디네이션만 대체 — '의료행위 대체' 표현 금지, physician-supervised.
+     *   포지셔닝: platform/operator(의료기관 아님) · PHM · 진단/예측 클레임 금지
+     *   · 질병확률 환자 직접표시 금지.
+     *
+     * §8 [v3.0] 5개년 동적 파라미터 — 합의 완료 (2026-07-04)
+     *   ① churn(연 이탈) = churn₀(32/25/18%) × (1 − rpmAdopt × δ), δ=0.20/0.35/0.50 [ASS]
+     *      — 기기(디지털 구급통·워치)가 이탈의 함수 변수: 물리 앵커·데이터 전환비용·접촉빈도.
+     *      Pilot 검증 항목 추가: RPM 사용자 vs 비사용자 이탈률 비교 (δ의 [DR] 경로).
+     *   ② 기업 S-커브: Y2 중반 해금 (계수 검증 + 안정가동 6개월 — 가드레일 12 정합)
+     *      → 침투 Y2 1.5%(반기) → Y3 8% → Y4 15% → Y5 20%.
+     *   ③ 자연 성장: 방문 연 3/5/8% — Loop 귀속과 분리 (자연성장 매출은 ΔEBITDA 미계상).
+     *   ④ capacity 한도: 방문 1.6× (가동률 60→95%) — 도달 시 성장 정체 + 3호 사이트 트리거.
+     *   ⑤ 검진: 기존 연 3% + C1 침투 연동 + W5·F1은 M3 스톡 연동.
+     *   ⑥ 가격: 5년 동결 (ARPU·관리료·PEPM 인상 0 — 물량·전환만으로 서는 모델).
+     *   ⑦ opex: 플랫폼 고정 연 3% 인상, 사이트당·인당 동결, AI span 연차 개선 없음.
+     *   ⑧ κ=0 유지, 전환율 계수 연차 개선 없음 — 복리는 스톡 축적에서만.
+     *   M3 저수지: 스톡(y+1) = 스톡(y)×(1−churn유효) + 연 유입(직접+W2+C1경유).
+     *
+     * §9 [v3.1] 성장 엔진 — 1차 실사 [DR] 재판독 + 시장 데이터
+     *   발견: Vista = 2병원이 아니라 15개 도시+해외 의무실 33곳 네트워크 (화웨이 6·J&J 5
+     *   ·커민스 3·CGN 8개소 54k·디즈니 15k 등). hub-and-spoke가 이미 존재 — 미국 전략 동형.
+     *   엔진1 스포크 전환: 의무실=물리접점(간호·기기), 허브 병원=互联网医院 원격의,
+     *     Loop=디지털층. 병원 capex 0으로 M3 전국화. 스케줄(기본): Y2 1곳(앵커, 화웨이
+     *     심천 권장)→Y3 5곳→Y4 12곳→Y5 20곳. 게이트: ①Pilot 계수 ②안정 6개월+앵커 지표
+     *     ③스포크 unit economics. X1 크로스셀만 Y1 즉시 (이탈 리스크 0).
+     *   엔진2 X1 검진 크로스셀: 외래 상업 8,367명 vs 검진 상업 1,635명 — 10배 갭 [DR].
+     *     기존 고객 전환이라 CAC 0. pool×전환율/12, 크로스셀 검진은 W2 퍼널 합류.
+     *   엔진3 동일계정 증설: 멀티사이트 고객(화웨이·J&J·VW)·CGN 모델(1계약 8개소 54k)
+     *     복제 — 스포크 스케줄의 공급원 (별도 레버 아님).
+     *   엔진5 멘탈 모듈: 화웨이 사이트 심리사 상주 [DR] = 수요 증명 — PEPM upsell 후보 (주석).
+     *   [제외] 엔진4 해외현장 RPM (CNPC 이라크 등 8.5k) — 사용자 결정으로 보류.
+     *
+     * §10 [v3.2] FFS vs DRG · 레버 클러스터링
+     *   본 모델은 순수 FFS(행위별수가) — DRG(입원 진단군 정액)는 입원(M2) 전제라
+     *   외래전용 Vista엔 구조적으로 해당 없음. 단, M3 관리료는 중국 만성질환
+     *   按人头付费(capitation)와 동형인 유사-DRG/번들 레이어 — 서비스 건수 무관 lives당
+     *   정액. M2(입원) 편입 시에만 DRG 노출 재검토 필요.
+     *   레버 보드를 8클러스터로 재편(①원격청구완결②케어갭·사후관리③만성관리 코어
+     *   ★최대수익④검진순환⑤운영효율⑥기업스포크⑦분모⑧게이트) — 계산 로직 불변,
+     *   B1 22레버 뭉침의 가독성 문제만 해소. ③클러스터 기본 펼침(최대 수익원 강조).
+     *   [추가] 레버별 기여(워터폴) 카드도 동일 8클러스터로 재편 — 레버 보드와 완전 일관.
+     *
+     * §11 [v3.3] JV 구조 확정 — 실제 term sheet 반영 (Vista TFT, 이경하 전무 회신)
+     *   JV(디지털 병동) = Vista 50 : Invites 50. 대칭 이중 라이선싱 구조로 확정:
+     *   ① Digital Healthcare Business right agreement: Licensor=Vista, Licensee=JV.
+     *      대상 = 베이징·선전 병원 + 구내병원(스포크) 독점 디지털헬스케어 사업권
+     *      (스포크 채널이 Vista 현물출자 대상에 명시 포함 — 가드레일 12 정합 확인).
+     *      Upfront $12.7M(JV 지분으로 지급) + 매출 5% 로열티 × 10년.
+     *   ② Business license agreement: Licensor=CG Invites, Licensee=JV.
+     *      대상 = Invitesloop 플랫폼 독점 사업·기술 라이선스.
+     *      Upfront $8.7M(JV 지분으로 지급) + 매출 5% 로열티 × 10년.
+     *   → JV는 양쪽에 로열티 합산 10%(Vista 5%+Invites 5%)를 JV 매출 기준으로 지급 —
+     *     대칭 구조라 이전가격 방어력 높음(비교가능 라이선스요율 3~8%대에 부합, CUT법 벤치마크 가능).
+     *     Vista는 지분 50% 가치상승 + 로열티 현금흐름 이중 수취 — 스포크 자발 확산 유인 강화.
+     *   ⚠ 미확정: 12.7M vs 8.7M upfront 밸류에이션 차액과 5:5 지분의 정합 방식(현금 top-up 등),
+     *     로열티 계산 베이스의 계약 문구 최종본, Invites측 로열티 수취법인의 조약 라우팅(WHT) —
+     *     법무·세무 확정 전까지 잠정치.
+     *   ⑤ opex = JV 손익 귀속. 낙수(Loop발 오프라인 증가)는 청구 안 함 — Vista 100% 귀속,
+     *      Invites는 JV 지분 50%로 간접 회수.
+     *   ⑥ 5:5 deadlock은 운영권 계약 배분으로 해소 (제품·확산 로드맵=Invites, 의료·현장=Vista).
+     *   레버 태그: B1a·Rx = [Vista 인터넷병원 依托 · 온라인 복진만(初診 금지) · AI처방 금지]
+     *   JV 밸류에이션 산식: JV순이익 = JV매출(gross) − 로열티10% − JV opex → ×EV/EBITDA(12~25x)
+     *     기본tier 궤적(2027→2031): 순이익 $2.95M→$11.33M, 가치(18x) $53M→$204M.
+     *
+     * §7 버전 이력
+     *   v0.1 초안 → v0.2 잠식·occGate·계약 게이팅 → v0.3 1차 실사 [DR]
+     *   → v0.4 3단계 scope → v0.5 R1 플라이휠 → v0.6 수가 완전포착 3레버
+     *   → v1.0 표준화(코드북·프리셋·유형 매트릭스) → v1.1 경로 재감사 5레버
+     *   → v1.2 denial 게이트 → v1.3 RPM → v2.0 레버 개별 ON/OFF 보드
+     *   → v2.1 미국 디자인 동형·기기 파트너십·AI span → v2.2 G1·F1·κ
+     *   → v2.3 미·중 용어 통일 + 헤더 설명서·용어집 통합 → v2.4 북경 프리셋·기업 조건부 OFF → v2.5 3×3 매트릭스 → v2.6 Loop opex·capex 내재화 + 청구성공률 레인지 → v3.0 5개년 동적(저수지 churn·기업 S-커브·capacity 트리거)
+     * ═══════════════════════════════════════════════════════════════════════ */
+
+    const TIERS = {
+        cons: {
+            label: "보수",
+            teleAdopt: .08,
+            teleArpu: 100,
+            cannib: .55,
+            fuRecover: .25,
+            autoReal: .20,
+            m3Enroll: .30,
+            m3Fee: 40,
+            m3New: 100,
+            billConv: .15,
+            capture: .30,
+            reExam: .20,
+            spConv: .15,
+            gapClose: .20,
+            scrRepeat: .30,
+            rcmDenial: .12,
+            rpmAdopt: .20,
+            aiSpan: 80,
+            scrUplift: .03,
+            abnRate: .25,
+            w2Conv: .05,
+            eapPen: .05,
+            pepm: 1.0,
+            corpScrPen: .01,
+            newContracts: 1,
+            refBack: .30,
+            famRate: .05,
+            churn0: .32,
+            delta: .20,
+            natGrow: .03,
+            spokeSched: [0, 1, 3, 6, 10],
+            spokeEnroll: .20,
+            xConv: .05
+        },
+        base: {
+            label: "기본",
+            teleAdopt: .15,
+            teleArpu: 120,
+            cannib: .40,
+            fuRecover: .40,
+            autoReal: .40,
+            m3Enroll: .50,
+            m3Fee: 60,
+            m3New: 250,
+            billConv: .30,
+            capture: .50,
+            reExam: .35,
+            spConv: .30,
+            gapClose: .35,
+            scrRepeat: .50,
+            rcmDenial: .07,
+            rpmAdopt: .35,
+            aiSpan: 120,
+            scrUplift: .08,
+            abnRate: .30,
+            w2Conv: .12,
+            eapPen: .15,
+            pepm: 1.5,
+            corpScrPen: .03,
+            newContracts: 3,
+            refBack: .50,
+            famRate: .10,
+            churn0: .25,
+            delta: .35,
+            natGrow: .05,
+            spokeSched: [0, 1, 5, 12, 20],
+            spokeEnroll: .30,
+            xConv: .12
+        },
+        aggr: {
+            label: "공격",
+            teleAdopt: .28,
+            teleArpu: 150,
+            cannib: .25,
+            fuRecover: .60,
+            autoReal: .60,
+            m3Enroll: .70,
+            m3Fee: 80,
+            m3New: 600,
+            billConv: .50,
+            capture: .70,
+            reExam: .50,
+            spConv: .45,
+            gapClose: .50,
+            scrRepeat: .70,
+            rcmDenial: .04,
+            rpmAdopt: .50,
+            aiSpan: 200,
+            scrUplift: .15,
+            abnRate: .35,
+            w2Conv: .22,
+            eapPen: .30,
+            pepm: 2.5,
+            corpScrPen: .06,
+            newContracts: 6,
+            refBack: .70,
+            famRate: .20,
+            churn0: .18,
+            delta: .50,
+            natGrow: .08,
+            spokeSched: [0, 2, 8, 20, 33],
+            spokeEnroll: .40,
+            xConv: .20
+        },
+    };
+
+    const INP_SZ = {
+        monthlyVisits: 1772, arpu: 250, missedRate: .21, fuShare: .30, capUtil: .60,
+        fixedCost: 200000, varCostPct: .30, coordN: 10, coordCost: 2200, repetitivePct: .80, chronicPanel: 818,
+        monthlyScreens: 610, scrPrice: 350, monthlyUnbilled: 800, consultFee: 50, leakRate: .03,
+        gapRate: .25, gapFee: 60, rxPM: 25, visitsPerLifeYr: 3, insShare: .70, denial0: .20, rpmFee: 35, rpmDevAmort: 7,
+        mgrCost: 2500, spanBase: 50, refOutRate: .03, crossPool: 6700
+    };  // [DR] 상업외래 8,367 − 상업검진 1,635
+    const INP_BJ = {
+        ...INP_SZ, monthlyVisits: 5417, chronicPanel: 2480, monthlyScreens: 1000,
+        fixedCost: 250000, coordN: 12, monthlyUnbilled: 1500, capUtil: .65, crossPool: 15000
+    };  // [ASS]
+    const ENT = {eapEmployees: 207000, avgEmpPerContract: 3000, spokeEmp: 6000};  // 스포크당 평균 직원 [DR: 207k/33≈6.3k] // 네트워크 자산 (가드레일 12)
+
+    const LEVERS = [
+        {k: "b1", name: "B1a · 원격케어 순증", sub: "신규분만 — 잠식은 음(−)기여 차감", cap: "×(1−cannib) − 잠식×ΔARPU", grp: "B1", sc: 1, c: "#63D3A6", cl: "tele"},
+        {k: "b1b", name: "B1b · 무상케어 청구화", sub: "24h핫라인·결과상담(현 무상 [DR]) → 청구", cap: "무상건 × 전환율 × 단가", grp: "B1", sc: 1, c: "#8BC97E", cl: "tele"},
+        {k: "b2a", name: "B1c · FU 미방문 회복", sub: "미방문 21% [DR] × 회복률 × occGate", cap: "×occGate — 슬롯 차면 대기열", grp: "B1", sc: 1, c: "#E8B34B", cl: "tele"},
+        {k: "b2c", name: "B1d · RCM (청구 완결)", sub: "charge capture + 삭감 회수 — US RCM 동일", cap: "외래매출 × 누락률 × 회수율", grp: "B1", sc: 1, c: "#D9C25A", cl: "tele"},
+        {k: "m1a", name: "M1a · 케어갭 시행", sub: "임상 due 검사를 하게 — IRS+ 알림", cap: "B1d(한 것 청구)와 별개 층", grp: "B1", sc: 1, c: "#A9C96B", cl: "gap"},
+        {k: "w3", name: "W3 · 재검 이행", sub: "유소견 재검 권고의 이행률 개선", cap: "S2 · 재검단가 = 패키지 40%", grp: "B1", sc: 2, c: "#E89B4B", cl: "gap"},
+        {k: "w4", name: "W4 · 유소견→전문의 외래", sub: "검진 이상소견의 원내 전문의 전환", cap: "S2 · W2와 동일인 별개 수가", grp: "B1", sc: 2, c: "#E8854B", cl: "gap"},
+        {k: "g1", name: "G1 · 상급병원 복귀 케어", sub: "Green Pass 연계환자의 퇴원 후 사후관리", cap: "타원 M2→우리 M3 · ≈US TCM", grp: "B1", sc: 1, c: "#D98B5A", cl: "gap"},
+        {k: "b2b", name: "B2a · 코디 자동화", sub: "반복 80% [DR] × 실현율 — 전환배치 전제", cap: "기존 코디 풀 — B2b(AI)와 분리", grp: "B2", sc: 1, c: "#4FC3D9", cl: "ops"},
+        {k: "ai", name: "B2b · AI 케어매니저 span", sub: "agentic AI가 모니터링·아웃리치 대체", cap: "M3 성장분 증원 회피", grp: "B2", sc: 1, dep: "m3", c: "#5AA7E8", cl: "ops"},
+        {k: "m3", name: "M3 · 만성 관리료", sub: "recurring 스톡 — US APCM 상당", cap: "기업계약·자비 — denial 제외", grp: "B1", sc: 1, c: "#E87BA8", cl: "m3c"},
+        {k: "m3v", name: "M3v · 신규 lives FU방문", sub: "관리료와 별개 진료 FFS — 신규분만", cap: "B1c와 배타 (가드레일 4)", grp: "B1", sc: 1, dep: "m3", c: "#E86BC0", cl: "m3c"},
+        {k: "rx", name: "Rx · 약국 refill", sub: "의약 미분리 [DR] — 순응도↑ = 마진", cap: "lives × 월 gross × 40%", grp: "B1", sc: 1, dep: "m3", c: "#C97BE8", cl: "m3c"},
+        {k: "rpm", name: "RPM · 원격모니터링", sub: "M3 서브셋 기기층 [PENDING]", cap: "파트너십 ON = 기기상각 0", grp: "B1", sc: 1, dep: "m3", c: "#A87BE8", cl: "m3c"},
+        {k: "w1", name: "W1 · 검진 upsell", sub: "IRS+ 개인화 패키지 상향", cap: "S2 · 기존 검진분만", grp: "B1", sc: 2, c: "#E8A85A", cl: "scr"},
+        {k: "x1", name: "X1 · 검진 크로스셀 [v3.1]", sub: "외래 상업고객의 검진 미구매 갭 — 10배 [DR]", cap: "S2 · pool×전환/12 — Y1 즉시 가능", grp: "B1", sc: 2, c: "#FFB74D", cl: "scr"},
+        {k: "w5", name: "W5 · M3→W 순환검진", sub: "관리 lives의 연례 검진 재구매", cap: "S2 · '순환 루프' [DR]", grp: "B1", sc: 2, dep: "m3", c: "#E8935A", cl: "scr"},
+        {k: "f1", name: "F1 · 가족 확산", sub: "관리 환자 가구의 가족 검진 유입", cap: "S2 · expat 가족동반 [DR]", grp: "B1", sc: 2, dep: "m3", c: "#E8B07B", cl: "scr"},
+        {k: "b3", name: "B3 · 기업 EAP PEPM", sub: "유효분모 × 침투율 × PEPM — 안정화 후 ON", cap: "합산×③ 전용 · 가드레일 12", grp: "B3", sc: 3, ent: true, c: "#9B8BE8", cl: "ent"},
+        {k: "w2", name: "W2 · 유소견→M3 전환", sub: "lives 파이프 — 매출 아님", cap: "S2 · M3 스톡으로만 흐름", grp: "분모", sc: 2, dep: "m3", c: "#8A93A8", cl: "denom"},
+        {k: "c1", name: "C1 · 기업→검진 유입", sub: "위탁 리퍼럴 — W2 퍼널 합류", cap: "합산×③ 전용 · 가드레일 12", grp: "분모", sc: 3, ent: true, c: "#B98BD9", cl: "denom"},
+        {k: "r1", name: "R1 · 역방향 리드", sub: "외래환자 소속사 → 신규계약 → 분모↑", cap: "합산×③ 전용 · base-expander", grp: "분모", sc: 3, ent: true, c: "#8AA8C9", cl: "denom"},
+        {k: "rcm", name: "청구성공률 게이트", sub: "청구가 거절 없이 입금되는 비율 — ON=clean-claim 가동", cap: "보험청구성 B1 레버에만 적용", grp: "게이트", sc: 1, c: "#E06C75", cl: "gate"},
+    ];
+
+    const CLUSTERS = [
+        {id: "tele", name: "① 원격·청구완결", sub: "방문 기반 누수 제로화 (B1a~d)"},
+        {id: "gap", name: "② 케어갭·사후관리", sub: "검진·퇴원 연계 (M1a·W3·W4·G1)"},
+        {id: "m3c", name: "③ 만성관리 코어 ★최대수익", sub: "M3·M3v·Rx·RPM — 저수지 심장"},
+        {id: "scr", name: "④ 검진 순환·확산", sub: "W1·X1·W5·F1"},
+        {id: "ops", name: "⑤ 운영효율", sub: "코디 자동화·AI 케어매니저"},
+        {id: "ent", name: "⑥ 기업 스포크", sub: "B3 — 가드레일 12: 검증 후 ON"},
+        {id: "denom", name: "⑦ 분모 확장", sub: "lives만 — 매출 아님 (W2·C1·R1)"},
+        {id: "gate", name: "⑧ 청구성공률 게이트", sub: "denial 실현율"},
+    ];
+
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+    function siteCalc(t, inp, scope, lv, devPartner, kap, corpScreens, entOK, succ) {
+        const on = (k) => {
+            const d = LEVERS.find((x) => x.k === k);
+            if (d.ent && !entOK) return false;
+            if (scope < d.sc) return false;
+            if (d.dep && !on(d.dep)) return false;
+            return lv[k];
+        };
+        const vc = inp.varCostPct;
+        const occ = clamp((0.95 - inp.capUtil) / 0.15, 0, 1);
+        const scr = scope >= 2 ? inp.monthlyScreens : 0;
+        const cs = on("c1") ? corpScreens : 0;
+        const xScr = on("x1") ? (inp.crossPool * t.xConv) / 12 : 0;  // [v3.1] 크로스셀 검진 — 퍼널 합류
+        const ts = scr + cs + xScr;
+        const revOP = inp.monthlyVisits * inp.arpu;
+        const ebitda0 = (revOP + scr * inp.scrPrice) * (1 - vc) - inp.fixedCost;
+
+        let b1 = 0, teleSub = 0;
+        if (on("b1")) {
+            const tv = inp.monthlyVisits * t.teleAdopt;
+            teleSub = tv * t.cannib;
+            b1 = tv * (1 - t.cannib) * t.teleArpu * (1 - vc) - teleSub * (inp.arpu - t.teleArpu) * (1 - vc);
+        }
+        const b1b = on("b1b") ? inp.monthlyUnbilled * t.billConv * inp.consultFee * (1 - vc) : 0;
+        let b2a = 0;
+        if (on("b2a")) {
+            const sf = (inp.monthlyVisits * inp.fuShare) / (1 - inp.missedRate);
+            b2a = sf * inp.missedRate * t.fuRecover * occ * inp.arpu * (1 - vc);
+        }
+        const b2c = on("b2c") ? revOP * inp.leakRate * t.capture : 0;
+        const m1a = on("m1a") ? inp.monthlyVisits * inp.gapRate * t.gapClose * inp.gapFee * (1 - vc) : 0;
+        const w3 = on("w3") ? ts * t.abnRate * 0.5 * t.reExam * (inp.scrPrice * 0.4) * (1 - vc) : 0;
+        const w4 = on("w4") ? ts * t.abnRate * t.spConv * (inp.arpu * 1.2) * (1 - vc) : 0;
+        const g1 = on("g1") ? inp.monthlyVisits * inp.refOutRate * t.refBack * (inp.arpu * 2) * (1 - vc) : 0;
+        const b2b = on("b2b") ? inp.coordN * inp.coordCost * inp.repetitivePct * t.autoReal : 0;
+        const w2Lives = on("w2") ? ts * t.abnRate * t.w2Conv : 0;
+        const newLives = on("m3") ? t.m3New + w2Lives * 12 : 0;
+        const m3Lives = on("m3") ? inp.chronicPanel * t.m3Enroll + newLives : 0;
+        const m3 = on("m3") ? m3Lives * t.m3Fee * (1 - vc) : 0;
+        const m3v = on("m3v") ? newLives * (inp.visitsPerLifeYr / 12) * inp.arpu * (1 - vc) : 0;
+        const rx = on("rx") ? m3Lives * inp.rxPM * 0.40 : 0;
+        const dev = devPartner ? 0 : inp.rpmDevAmort;
+        const rpm = on("rpm") ? m3Lives * t.rpmAdopt * (inp.rpmFee * (1 - vc) - dev) : 0;
+        const w1 = on("w1") ? scr * inp.scrPrice * t.scrUplift * (1 - vc) : 0;
+        const w5 = on("w5") ? (m3Lives * t.scrRepeat / 12) * inp.scrPrice * (1 - vc) : 0;
+        const f1 = on("f1") ? (m3Lives * t.famRate / 12) * inp.scrPrice * (1 - vc) : 0;
+        const ai = on("ai") ? Math.max(0, m3Lives / inp.spanBase - m3Lives / t.aiSpan) * inp.mgrCost : 0;
+        const c1 = on("c1") ? cs * inp.scrPrice * (1 - vc) : 0;
+        const x1 = on("x1") ? xScr * inp.scrPrice * (1 - vc) : 0;
+        const k1 = on("b1") && on("b2a") ? b2a * kap.k1 : 0;
+        const k2 = on("rpm") ? (rx + w5) * kap.k2 : 0;
+        const kappa = k1 + k2;
+        const insNew = Math.max(b1, 0) + b1b + m1a + w4 + m3v;
+        const succRate = on("rcm") ? succ.on : succ.off;      // 청구성공률: ON=clean-claim 가동, OFF=무대책
+        const rcm = -(insNew * inp.insShare * (1 - succRate));
+        const rcmAverted = on("rcm") ? insNew * inp.insShare * (succ.on - succ.off) : 0;
+        const parts = {b1, b1b, b2a, b2c, m1a, w3, w4, g1, b2b, ai, m3, m3v, rx, rpm, w1, x1, w5, f1, c1, kappa, rcm};
+        const net = Object.values(parts).reduce((a, b) => a + b, 0);
+        return {parts, net, ebitda0, m3Lives, w2Lives, rcmAverted, occ};
+    }
+
+    function cellCalc(site, scope, t, inpSZ, inpBJ, lv, devPartner, kap, succ, oc) {
+        const entOK = site === "comb" && scope >= 3;
+        const addedEmp = entOK && lv.r1 ? t.newContracts * ENT.avgEmpPerContract * 0.5 : 0;
+        const spokeEmpTot = entOK ? oc.spokeN * ENT.spokeEmp + addedEmp : 0;  // [v3.1] 전환 스포크 기반
+        const effEap = spokeEmpTot;
+        const c1s = entOK && lv.c1 ? (effEap * t.corpScrPen * 4) / 12 : 0;   // 전환 스포크는 침투 4배 (디지털화 사이트)
+        const finish = (r, sitesN, b3v) => {
+            // Loop opex 3층: 플랫폼 고정(네트워크) + 사이트당 + M3 인당 [v2.6]
+            // 라이선스료 없음 — JV에 루프 판권 현물출자로 대체 (정산구조 [PENDING])
+            const opex = oc.fixed + oc.perSite * sitesN + oc.perLife * r.m3Lives;
+            const parts = {...r.parts, b3: b3v, opex: -opex};
+            const net = r.net + b3v - opex;
+            const payback = net > 0 ? oc.capex / net : Infinity;   // capex는 EBITDA 밖 — 회수기간만
+            return {...r, parts, net, payback, opex};
+        };
+        if (site === "sz" || site === "bj") {
+            const r = siteCalc(t, site === "sz" ? inpSZ : inpBJ, scope, lv, devPartner, kap, 0, false, succ);
+            return {...finish(r, 1, 0), effEap: 0, addedEmp: 0, c1s: 0};
+        }
+        const shSZ = inpSZ.monthlyVisits / (inpSZ.monthlyVisits + inpBJ.monthlyVisits);
+        const a = siteCalc(t, inpSZ, scope, lv, devPartner, kap, c1s * shSZ, entOK, succ);
+        const b = siteCalc(t, inpBJ, scope, lv, devPartner, kap, c1s * (1 - shSZ), entOK, succ);
+        const parts = {};
+        Object.keys(a.parts).forEach((k) => {
+            parts[k] = a.parts[k] + b.parts[k];
+        });
+        const merged = {
+            parts, net: a.net + b.net, ebitda0: a.ebitda0 + b.ebitda0, m3Lives: a.m3Lives + b.m3Lives,
+            w2Lives: a.w2Lives + b.w2Lives, rcmAverted: a.rcmAverted + b.rcmAverted, occ: Math.min(a.occ, b.occ)
+        };
+        const b3v = entOK && lv.b3 ? effEap * t.eapPen * t.pepm : 0;
+        return {...finish(merged, 2, b3v), effEap, addedEmp, c1s};
+    }
+
+    function dynProject(site, scope, t, inpSZ, inpBJ, lv, devPartner, succ, oc, seq = false) {
+        // 5개년 동적 — §8 합의 파라미터. κ=0, 가격 동결, 계수 개선 없음.
+        // [v3.1] 스포크 전환 스케줄 (게이트: Y1말 앵커→Y2하 5곳→Y3 대량) — tier별
+        const SCHED = t.spokeSched;
+        const sites = site === "comb" ? [inpSZ, inpBJ] : [site === "sz" ? inpSZ : inpBJ];
+        const churnEff = t.churn0 * (1 - (lv.rpm && lv.m3 ? t.rpmAdopt * t.delta : 0));
+        const years = [];
+        let stocks = sites.map((inp) => (lv.m3 ? inp.chronicPanel * t.m3Enroll : 0));
+        let capHitYear = null;
+        for (let y = 1; y <= 5; y++) {
+            // [v3.3] 순차확장 모드: Y1=①외래 Y2=②+검진 Y3~5=③+기업(스포크 Y3=앵커 진입)
+            const yScope = seq ? (y === 1 ? 1 : y === 2 ? 2 : 3) : scope;
+            const entOK = site === "comb" && yScope >= 3;
+            const gf = Math.pow(1 + t.natGrow, y - 1);
+            const spokeIdx = seq ? y - 3 : y - 1;              // 순차모드: Y3=스케줄[0](앵커)
+            const spokes = entOK && lv.b3 ? SCHED[Math.max(0, Math.min(spokeIdx, SCHED.length - 1))] : 0;
+            const prevSpokeIdx = spokeIdx - 1;
+            const prevSpokes = entOK && lv.b3 && y > (seq ? 3 : 1) ? SCHED[Math.max(0, Math.min(prevSpokeIdx, SCHED.length - 1))] : 0;
+            const cumSpokeEmp = spokes * ENT.spokeEmp;
+            const c1s = entOK && lv.c1 ? (cumSpokeEmp * t.corpScrPen * 4) / 12 : 0;
+            const totV0 = sites.reduce((a, i) => a + i.monthlyVisits, 0);
+            let net = 0, m3Tot = 0, capHit = false, visTot = 0, capTot = 0;
+            sites.forEach((inp, si) => {
+                const vc = inp.varCostPct;
+                const capMax = inp.monthlyVisits * 1.6;              // §8-④
+                const visits = Math.min(inp.monthlyVisits * gf, capMax);
+                if (inp.monthlyVisits * gf >= capMax) capHit = true;
+                visTot += visits;
+                capTot += capMax;
+                const scr = yScope >= 2 ? inp.monthlyScreens * Math.pow(1.03, y - 1) : 0;
+                const cs = c1s * (inp.monthlyVisits / totV0);
+                const ts = scr + cs;
+                const occ = Math.max(0, Math.min(1, (0.95 - inp.capUtil * gf) / 0.15)); // 가동률도 성장따라
+                // 유입 → 저수지
+                const xScr = lv.x1 && yScope >= 2 ? (inp.crossPool * t.xConv) / 12 : 0;
+                const ts2 = ts + xScr;
+                const w2L = lv.w2 && lv.m3 && yScope >= 2 ? ts2 * t.abnRate * t.w2Conv : 0;
+                // 스포크 전환 코호트: 신규 전환 스포크의 위험군 등록 (사이트 방문비중 배분)
+                const spokeCohort = lv.m3 && entOK ? ((spokes - prevSpokes) * ENT.spokeEmp * 0.15 * t.spokeEnroll) / 12 * (inp.monthlyVisits / totV0) : 0;
+                const inflow = lv.m3 ? (t.m3New + w2L * 12 + spokeCohort * 12) : 0;
+                stocks[si] = stocks[si] * (1 - churnEff) + inflow;
+                const m3L = stocks[si];
+                m3Tot += m3L;
+                // 레버 (v2.6 동일 수식 — Loop 귀속분만, 자연성장 매출 미계상 §8-③)
+                const tv = lv.b1 ? visits * t.teleAdopt : 0;
+                const b1 = tv * (1 - t.cannib) * t.teleArpu * (1 - vc) - tv * t.cannib * (inp.arpu - t.teleArpu) * (1 - vc);
+                const b1b = lv.b1b ? inp.monthlyUnbilled * t.billConv * inp.consultFee * (1 - vc) : 0;
+                const b1c = lv.b2a ? ((visits * inp.fuShare) / (1 - inp.missedRate)) * inp.missedRate * t.fuRecover * occ * inp.arpu * (1 - vc) : 0;
+                const b1d = lv.b2c ? visits * inp.arpu * inp.leakRate * t.capture : 0;
+                const m1a = lv.m1a ? visits * inp.gapRate * t.gapClose * inp.gapFee * (1 - vc) : 0;
+                const g1 = lv.g1 ? visits * inp.refOutRate * t.refBack * (inp.arpu * 2) * (1 - vc) : 0;
+                const w3 = lv.w3 && yScope >= 2 ? ts2 * t.abnRate * 0.5 * t.reExam * (inp.scrPrice * 0.4) * (1 - vc) : 0;
+                const w4 = lv.w4 && yScope >= 2 ? ts2 * t.abnRate * t.spConv * (inp.arpu * 1.2) * (1 - vc) : 0;
+                const x1 = lv.x1 && yScope >= 2 ? xScr * inp.scrPrice * (1 - vc) : 0;
+                const b2a_ = lv.b2b ? inp.coordN * inp.coordCost * inp.repetitivePct * t.autoReal : 0;
+                const ai = lv.ai && lv.m3 ? Math.max(0, m3L / inp.spanBase - m3L / t.aiSpan) * inp.mgrCost : 0;
+                const m3 = lv.m3 ? m3L * t.m3Fee * (1 - vc) : 0;
+                const m3v = lv.m3v && lv.m3 ? inflow * (inp.visitsPerLifeYr / 12) * inp.arpu * (1 - vc) : 0;
+                const rx = lv.rx && lv.m3 ? m3L * inp.rxPM * 0.40 : 0;
+                const dev = devPartner ? 0 : inp.rpmDevAmort;
+                const rpm = lv.rpm && lv.m3 ? m3L * t.rpmAdopt * (inp.rpmFee * (1 - vc) - dev) : 0;
+                const w1 = lv.w1 && yScope >= 2 ? scr * inp.scrPrice * t.scrUplift * (1 - vc) : 0;
+                const w5 = lv.w5 && lv.m3 && yScope >= 2 ? (m3L * t.scrRepeat / 12) * inp.scrPrice * (1 - vc) : 0;
+                const f1 = lv.f1 && lv.m3 && yScope >= 2 ? (m3L * t.famRate / 12) * inp.scrPrice * (1 - vc) : 0;
+                const c1 = lv.c1 && yScope >= 3 ? cs * inp.scrPrice * (1 - vc) : 0;
+                const insNew = Math.max(b1, 0) + b1b + m1a + w4 + m3v;
+                const rcm = -(insNew * inp.insShare * (1 - (lv.rcm ? succ.on : succ.off)));
+                net += b1 + b1b + b1c + b1d + m1a + g1 + w3 + w4 + b2a_ + ai + m3 + m3v + rx + rpm + w1 + x1 + w5 + f1 + c1 + rcm;
+            });
+            const b3 = entOK && lv.b3 ? cumSpokeEmp * t.pepm : 0;
+            const opex = oc.fixed * Math.pow(1.03, y - 1) + oc.perSite * sites.length + oc.perLife * m3Tot; // §8-⑦
+            net += b3 - opex;
+            if (capHit && !capHitYear) capHitYear = y;
+            years.push({y, net, m3: m3Tot, spokes, capHit, util: visTot / capTot * 0.95});
+        }
+        const cum = years.reduce((a, r) => a + r.net * 12, 0);
+        return {years, cum, capHitYear, churnEff};
+    }
+
+    const GRP_META = {
+        B1: {name: "B1 직접수익", tag: "청구 현금 (누수+신규)", color: "#8BC97E"},
+        B2: {name: "B2 운영효율", tag: "원가·인력", color: "#4FC3D9"},
+        B3: {name: "B3 가치·플랫폼", tag: "기업 구독 PEPM", color: "#9B8BE8"},
+        게이트: {name: "게이트·비용(−)", tag: "청구실패 + Loop opex", color: "#E06C75"},
+    };
+
+    const SITES = [{id: "sz", l: "심천 [DR]"}, {id: "bj", l: "북경 [ASS]"}, {id: "comb", l: "합산"}];
+    const SCOPES = [{n: 1, l: "①외래"}, {n: 2, l: "②+검진"}, {n: 3, l: "③+기업"}];
+
+    function App() {
+        const [tier, setTier] = useState("base");
+        const [site, setSite] = useState("comb");
+        const [scope, setScope] = useState(2);
+        const [devPartner, setDevPartner] = useState(false);
+        const [kap, setKap] = useState({k1: 0, k2: 0});
+        const [succ, setSucc] = useState({on: 0.93, off: 0.80});          // 청구성공률 [ASS]
+        const [oc, setOc] = useState({fixed: 70000, perSite: 15000, perLife: 3, capex: 2000000, spokeN: 10}); // spokeN=정적 ③셀의 스포크 가정 // Loop opex·capex [ASS]
+        const [showInputs, setShowInputs] = useState(false);
+        const [seqMode, setSeqMode] = useState(true); // [v3.3] 순차확장 시나리오 기본 ON
+        const [expCl, setExpCl] = useState({m3c: true});
+        const [editSite, setEditSite] = useState("sz");
+        const [lv, setLv] = useState(Object.fromEntries(LEVERS.map((d) => [d.k, !["b3", "c1", "r1"].includes(d.k)])));
+        const [inpSZ, setInpSZ] = useState(INP_SZ);
+        const [inpBJ, setInpBJ] = useState(INP_BJ);
+
+        const T = TIERS[tier];
+        const R = useMemo(() => cellCalc(site, scope, T, inpSZ, inpBJ, lv, devPartner, kap, succ, oc), [site, scope, T, inpSZ, inpBJ, lv, devPartner, kap, succ, oc]);
+        const band = useMemo(() => {
+            const lo = cellCalc(site, scope, TIERS.cons, inpSZ, inpBJ, lv, devPartner, kap, succ, oc).net * 12;
+            const hi = cellCalc(site, scope, TIERS.aggr, inpSZ, inpBJ, lv, devPartner, kap, succ, oc).net * 12;
+            return {lo: Math.min(lo, hi), hi: Math.max(lo, hi)};
+        }, [site, scope, inpSZ, inpBJ, lv, devPartner, kap, succ, oc]);
+        const matrix = useMemo(() => SITES.map((s) => SCOPES.map((sc) =>
+            (s.id !== "comb" && sc.n === 3) ? null : cellCalc(s.id, sc.n, T, inpSZ, inpBJ, lv, devPartner, kap, succ, oc).net * 12
+        )), [T, inpSZ, inpBJ, lv, devPartner, kap, succ, oc]);
+
+        const netY = R.net * 12;
+        const D = useMemo(() => dynProject(site, scope, T, inpSZ, inpBJ, lv, devPartner, succ, oc, seqMode), [site, scope, T, inpSZ, inpBJ, lv, devPartner, succ, oc, seqMode]);
+        const fmt = (v) => Math.abs(v) >= 1e6 ? `$${(v / 1e6).toFixed(2)}M` : `$${(v / 1e3).toFixed(0)}K`;
+        const sign = (v) => (v >= 0 ? "+" : "−");
+        const inp = editSite === "sz" ? inpSZ : inpBJ;
+        const setInp = editSite === "sz" ? setInpSZ : setInpBJ;
+        const set = (k) => (e) => setInp({...inp, [k]: parseFloat(e.target.value) || 0});
+        const bandLo = Math.min(band.lo, 0), bandHi = Math.max(band.hi, netY, 1);
+        const pos = (v) => `${clamp(((v - bandLo) / (bandHi - bandLo)) * 100, 0, 100)}%`;
+        const toggle = (k) => setLv({...lv, [k]: !lv[k]});
+        const entOK = site === "comb" && scope >= 3;
+        const locked = (d) => (d.ent && !entOK) || scope < d.sc || (d.dep && (!lv[d.dep] || scope < LEVERS.find((x) => x.k === d.dep).sc));
+        const S = styles;
+        const moneyLevers = LEVERS.filter((d) => d.grp !== "분모" || d.k === "c1");
+        const maxAbs = Math.max(...moneyLevers.map((d) => Math.abs(R.parts[d.k] || 0)), 1);
+        const grp = {
+            B1: ["b1", "b1b", "b2a", "b2c", "m1a", "w3", "w4", "g1", "m3", "m3v", "rx", "rpm", "w1", "w5", "f1", "c1", "kappa"].reduce((a, k) => a + (R.parts[k] || 0), 0),
+            B2: R.parts.b2b + R.parts.ai, B3: R.parts.b3 || 0, 게이트: R.parts.rcm + (R.parts.opex || 0),
+        };
+
+        return (
+            <div style={S.root}>
+                <style>{`*{box-sizing:border-box;} input[type=number]{-moz-appearance:textfield;}
+            input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+            .seg:hover{background:#1c2230;} .lv:active{transform:scale(.99);}
+            input[type=range]{accent-color:#FF9F43;}`}</style>
+
+                <div style={S.header}>
+                    <div>
+                        <div style={S.kicker}>CAPTURE × FLYWHEEL · v3.3 · CHINA OUTPATIENT</div>
+                        <div style={S.title}>루프 적용 EBITDA 개선 추정모델 — Vista 네트워크</div>
+                    </div>
+                </div>
+
+                <div style={S.segRow}>
+                    {Object.keys(TIERS).map((s) => (
+                        <button key={s} className="seg" onClick={() => setTier(s)} style={{...S.seg, ...(tier === s ? S.segOn : {})}}>{TIERS[s].label}</button>
+                    ))}
+                </div>
+
+                {/* 3×3 매트릭스 도메인 */}
+                <div style={S.card}>
+                    <div style={S.cardHead}><Grid3X3 size={13}/> 도메인 매트릭스 — 사이트 × 도입범위 (셀 선택, ΔEBITDA/년)</div>
+                    <div style={S.mxGrid}>
+                        <div style={S.mxCorner}/>
+                        {SCOPES.map((sc) => <div key={sc.n} style={S.mxColHead}>{sc.l}</div>)}
+                        {SITES.map((s, i) => (
+                            <React.Fragment key={s.id}>
+                                <div style={S.mxRowHead}>{s.l}</div>
+                                {SCOPES.map((sc, j) => {
+                                    const v = matrix[i][j];
+                                    const dis = v === null;
+                                    const sel = site === s.id && scope === sc.n;
+                                    return (
+                                        <div key={sc.n} onClick={() => !dis && (setSite(s.id), setScope(sc.n))}
+                                             style={{...S.mxCell, ...(sel ? S.mxCellOn : {}), ...(dis ? S.mxCellDis : {}), cursor: dis ? "default" : "pointer"}}>
+                                            {dis ? <span style={{fontSize: 8, color: "#4a5468"}}>합산에서만</span>
+                                                : <span style={{fontFamily: "ui-monospace, monospace", fontWeight: sel ? 800 : 600, fontSize: 11.5, color: sel ? "#4FD1C5" : "#a9b3c6"}}>{fmt(v)}</span>}
+                                        </div>
+                                    );
+                                })}
+                            </React.Fragment>
+                        ))}
+                    </div>
+                    <div style={S.lamNote}>사이트×③은 비활성 — 기업 네트워크(207k)는 사이트 자산이 아니라 네트워크 자산이라 합산×③에서만 1회 계산 (가드레일 12.5). 기업 레버(B3·C1·R1)는 기본 OFF — 안정화 조건부 (가드레일 12).</div>
+                </div>
+
+                <div style={S.hero}>
+                    <div style={S.heroLabel}>{SITES.find((s) => s.id === site).l} × {SCOPES.find((s) => s.n === scope).l} — 순 ΔEBITDA / 년 (Loop opex 차감 후)</div>
+                    <div style={{...S.heroNum, color: netY >= 0 ? "#4FD1C5" : "#E06C75"}}>{sign(netY)}{fmt(Math.abs(netY))}</div>
+                    <div style={S.heroMeta}>
+                        <span>Baseline {fmt(R.ebitda0 * 12)}/년</span><span style={S.metaDiv}>·</span>
+                        <span>M3 스톡 {R.m3Lives.toFixed(0)}명</span><span style={S.metaDiv}>·</span>
+                        <span>occGate {(R.occ * 100).toFixed(0)}%</span><span style={S.metaDiv}>·</span>
+                        <span>회수 {R.payback === Infinity ? "—" : R.payback.toFixed(0) + "개월"}</span>
+                        {entOK && <><span style={S.metaDiv}>·</span><span>EAP 분모 {(R.effEap / 1000).toFixed(0)}k</span></>}
+                    </div>
+                    <div style={S.bandWrap}>
+                        <div style={S.bandTrack}>
+                            {bandLo < 0 && <div style={{...S.bandZero, left: pos(0)}}/>}
+                            <div style={{...S.bandFill, left: pos(band.lo), width: `calc(${pos(band.hi)} - ${pos(band.lo)})`}}/>
+                            <div style={{...S.bandMark, left: pos(netY)}}/>
+                        </div>
+                        <div style={S.bandLabels}><span>보수 {fmt(band.lo)}</span><span>공격 {fmt(band.hi)}</span></div>
+                    </div>
+                </div>
+
+                <div style={S.chips}>
+                    {Object.entries(GRP_META).map(([k, m]) => (
+                        <div key={k} style={{...S.chip, borderColor: m.color + "55"}}>
+                            <div style={{...S.chipDot, background: m.color}}/>
+                            <div style={S.chipName}>{m.name}</div>
+                            <div style={{...S.chipVal, color: m.color}}>{sign(grp[k] * 12)}{fmt(Math.abs(grp[k] * 12))}</div>
+                            <div style={S.chipTag}>{m.tag}</div>
+                        </div>
+                    ))}
+                </div>
+
+                <div style={S.card}>
+                    <div style={S.cardHead}><Layers size={13}/> 레버별 기여 / 년 — {SITES.find((s) => s.id === site).l} (클러스터별 — 레버 보드와 동일 구조)</div>
+                    {CLUSTERS.map((c) => {
+                        const members = LEVERS.filter((d) => d.cl === c.id);
+                        const flowIds = ["w2", "r1"];
+                        const moneyMembers = members.filter((d) => !flowIds.includes(d.k));
+                        const sum = moneyMembers.reduce((a, d) => a + (R.parts[d.k] || 0), 0) * 12;
+                        const expanded = !!expCl[c.id];
+                        if (moneyMembers.length === 0) return null; // 분모 클러스터는 기여 카드에서 생략(lives 단위 — 워터폴 부적합)
+                        return (
+                            <div key={c.id}>
+                                <div className="lv" style={{...S.wfRow, cursor: "pointer", alignItems: "center"}} onClick={() => setExpCl({...expCl, [c.id]: !expanded})}>
+                                    <div style={{...S.wfLabel, width: 100, color: c.id === "m3c" ? "#7BE8B0" : "#a9b3c6", fontWeight: 700}}>{c.name.replace(/^[①-⑧]\\s*/, "")}</div>
+                                    <div style={S.wfBarWrap}>
+                                        <div style={{
+                                            ...S.wfBar,
+                                            width: `${(Math.abs(sum / 12) / maxAbs) * 100}%`,
+                                            background: c.id === "m3c" ? "#7BE8B0" : moneyMembers[0].c,
+                                            opacity: sum < 0 ? 0.85 : 1
+                                        }}/>
+                                    </div>
+                                    <div style={{...S.wfVal, color: sum < 0 ? "#E06C75" : c.id === "m3c" ? "#7BE8B0" : "#cdd6e6", fontWeight: 700}}>{sign(sum)}{fmt(Math.abs(sum))}</div>
+                                    <ChevronDown size={11} style={{transform: expanded ? "none" : "rotate(-90deg)", transition: "transform .2s", color: "#5b6577", marginLeft: 4, flexShrink: 0}}/>
+                                </div>
+                                {expanded && moneyMembers.map((d) => {
+                                    const v = (R.parts[d.k] || 0) * 12;
+                                    return (
+                                        <div key={d.k} style={{...S.wfRow, opacity: locked(d) || !lv[d.k] ? 0.35 : 1, paddingLeft: 14}}>
+                                            <div style={{...S.wfLabel, fontSize: 9.5}}>{d.name.split(" · ")[0]}</div>
+                                            <div style={S.wfBarWrap}>
+                                                <div style={{...S.wfBar, width: `${(Math.abs(v / 12) / maxAbs) * 100}%`, background: d.c, opacity: v < 0 ? 0.85 : 1}}/>
+                                            </div>
+                                            <div style={{...S.wfVal, color: v < 0 ? "#E06C75" : "#cdd6e6"}}>{sign(v)}{fmt(Math.abs(v))}</div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        );
+                    })}
+                    <div style={S.wfRow}>
+                        <div style={{...S.wfLabel, width: 100}}>Loop opex</div>
+                        <div style={S.wfBarWrap}>
+                            <div style={{...S.wfBar, width: `${(Math.abs(R.parts.opex || 0) / maxAbs) * 100}%`, background: "#E06C75", opacity: 0.75}}/>
+                        </div>
+                        <div style={{...S.wfVal, color: "#E06C75"}}>−{fmt(Math.abs((R.parts.opex || 0) * 12))}</div>
+                    </div>
+                    <div style={S.wfNet}><span>순 ΔEBITDA / 년</span><span style={{color: netY >= 0 ? "#4FD1C5" : "#E06C75", fontWeight: 700}}>{sign(netY)}{fmt(Math.abs(netY))}</span></div>
+                </div>
+
+                <div style={S.card}>
+                    <div style={S.cardHead}><Power size={13}/> 레버 ON / OFF — 클러스터별 (탭하면 펼침, 스위치는 클러스터 일괄)</div>
+                    {CLUSTERS.map((c) => {
+                        const members = LEVERS.filter((d) => d.cl === c.id);
+                        const flowIds = ["w2", "r1"];
+                        const moneyMembers = members.filter((d) => !flowIds.includes(d.k));
+                        const sum = moneyMembers.reduce((a, d) => a + (R.parts[d.k] || 0), 0) * 12;
+                        const anyActive = members.some((d) => !locked(d) && lv[d.k]);
+                        const allActive = members.every((d) => locked(d) || lv[d.k]);
+                        const expanded = !!expCl[c.id];
+                        const masterToggle = (e) => {
+                            e.stopPropagation();
+                            const next = !allActive;
+                            const upd = {...lv};
+                            members.forEach((d) => {
+                                if (!locked(d)) upd[d.k] = next;
+                            });
+                            setLv(upd);
+                        };
+                        return (
+                            <div key={c.id} style={{marginBottom: 6, borderRadius: 9, overflow: "hidden", border: "1px solid #1a2029"}}>
+                                <div style={{...S.lever, borderBottom: "none", background: c.id === "m3c" ? "#16211c" : "#0f131b", padding: "9px 8px"}}
+                                     onClick={() => setExpCl({...expCl, [c.id]: !expanded})}>
+                                    <div style={{...S.toggle, background: allActive ? "#2E7D52" : anyActive ? "#5a5a2e" : "#232a38"}} onClick={masterToggle}>
+                                        <div style={{...S.knob, transform: allActive ? "translateX(16px)" : "none"}}/>
+                                    </div>
+                                    <div style={{flex: 1, minWidth: 0}}>
+                                        <div style={{...S.leverName, color: c.id === "m3c" ? "#7BE8B0" : "#e2e8f2"}}>{c.name}</div>
+                                        <div style={S.leverSub}>{c.sub}</div>
+                                    </div>
+                                    <div style={{...S.leverVal, color: sum < 0 ? "#E06C75" : c.id === "m3c" ? "#7BE8B0" : "#cdd6e6", fontWeight: 800}}>
+                                        {flowIds.some((k) => members.map((m) => m.k).includes(k)) && sum === 0 ? "lives" : `${sign(sum)}${fmt(Math.abs(sum))}`}
+                                    </div>
+                                    <ChevronDown size={13} style={{transform: expanded ? "none" : "rotate(-90deg)", transition: "transform .2s", color: "#5b6577", flexShrink: 0}}/>
+                                </div>
+                                {expanded && (
+                                    <div style={{background: "#0d1017", padding: "2px 4px 4px"}}>
+                                        {members.map((d) => {
+                                            const lk = locked(d);
+                                            const active = !lk && lv[d.k];
+                                            const v = (R.parts[d.k] || 0) * 12;
+                                            const isFlow = flowIds.includes(d.k);
+                                            return (
+                                                <div key={d.k} className="lv" style={{...S.lever, opacity: lk ? 0.4 : 1, cursor: lk ? "default" : "pointer", paddingLeft: 14}}
+                                                     onClick={() => !lk && toggle(d.k)}>
+                                                    <div style={{...S.toggle, width: 28, height: 15, background: active ? "#2E7D52" : "#232a38"}}>
+                                                        <div style={{...S.knob, width: 11, height: 11, transform: active ? "translateX(13px)" : "none"}}/>
+                                                    </div>
+                                                    <div style={{flex: 1, minWidth: 0}}>
+                                                        <div style={{...S.leverName, fontSize: 11}}>{d.name}{lk ? (d.ent && !entOK ? " — 합산×③ 전용" : scope < d.sc ? " — scope 잠김" : " — M3 필요") : ""}</div>
+                                                        <div style={S.leverSub}>{d.sub}</div>
+                                                        <div style={S.leverCap}>{d.cap}</div>
+                                                    </div>
+                                                    <div style={{...S.leverVal, color: isFlow ? "#7a859a" : v < 0 ? "#E06C75" : "#cdd6e6"}}>
+                                                        {isFlow ? (d.k === "w2" ? `+${(R.w2Lives * 12).toFixed(0)}L` : `+${((R.addedEmp || 0) / 1000).toFixed(1)}k명`) : `${sign(v)}${fmt(Math.abs(v))}`}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+
+                <div style={S.card}>
+                    <div style={S.cardHead}><Layers size={13}/> 5개년 동적 프로젝션 — {SITES.find((x) => x.id === site).l}</div>
+                    <div style={{display: "flex", gap: 6, marginBottom: 10}}>
+                        <button className="seg" onClick={() => setSeqMode(true)} style={{...S.segSm, ...(seqMode ? S.segOn : {})}}>순차확장 (Y1외래→Y2검진→Y3기업)</button>
+                        <button className="seg" onClick={() => setSeqMode(false)} style={{...S.segSm, ...(!seqMode ? S.segOn : {})}}>고정범위 ({SCOPES.find((x) => x.n === scope).l} 5년 유지)</button>
+                    </div>
+                    {!seqMode && !(site === "comb" && scope >= 3 && lv.b3) && (
+                        <div style={{background: "#2a2416", border: "1px solid #4a3f1f", borderRadius: 8, padding: "7px 10px", fontSize: 10, color: "#E8C97B", marginBottom: 10, lineHeight: 1.45}}>
+                            💡 고정범위 모드에서 스포크 궤적을 보려면: ① 매트릭스에서 <b>합산 × ③+기업</b> 선택 → ② 레버 보드에서 <b>B3·C1 ON</b>.
+                        </div>
+                    )}
+                    {seqMode && site !== "comb" && (
+                        <div style={{background: "#2a2416", border: "1px solid #4a3f1f", borderRadius: 8, padding: "7px 10px", fontSize: 10, color: "#E8C97B", marginBottom: 10, lineHeight: 1.45}}>
+                            💡 순차확장의 Y3 기업 스코프는 <b>합산</b> 도메인에서만 작동 (스포크=네트워크 자산, 가드레일 12.5). 심천·북경 단독 선택 시 Y3~5도 ②검진까지만 반영됩니다.
+                        </div>
+                    )}
+                    <div style={{display: "grid", gridTemplateColumns: "34px 1fr 1fr 1fr 1fr", gap: 4, fontSize: 10, fontFamily: "ui-monospace, monospace"}}>
+                        <div style={{color: "#5b6577", fontWeight: 800}}>Y</div>
+                        <div style={{color: "#5b6577", fontWeight: 800}}>ΔEBITDA/년</div>
+                        <div style={{color: "#5b6577", fontWeight: 800}}>M3 스톡</div>
+                        <div style={{color: "#5b6577", fontWeight: 800}}>스포크</div>
+                        <div style={{color: "#5b6577", fontWeight: 800}}>범위/비고</div>
+                        {D.years.map((r) => {
+                            const yScopeLabel = seqMode ? (r.y === 1 ? "①외래" : r.y === 2 ? "②검진" : "③기업") : SCOPES.find((x) => x.n === scope).l;
+                            const note = seqMode && r.y === 2 ? "검진 도입" : seqMode && r.y === 3 ? "기업 개시(앵커)" : (r.y === 2 && r.spokes > 0) ? "앵커→확대" : (r.spokes > 0 && r.y === 3) ? "대량전환" : r.capHit ? "⚠ capacity" : "";
+                            return (
+                                <React.Fragment key={r.y}>
+                                    <div style={{color: "#a9b3c6"}}>Y{r.y}</div>
+                                    <div style={{color: r.net >= 0 ? "#4FD1C5" : "#E06C75", fontWeight: 700}}>{sign(r.net * 12)}{fmt(Math.abs(r.net * 12))}</div>
+                                    <div style={{color: "#E87BA8"}}>{r.m3.toFixed(0)}명</div>
+                                    <div style={{color: "#9B8BE8"}}>{r.spokes > 0 ? r.spokes + "곳" : "—"}</div>
+                                    <div style={{color: r.capHit ? "#FF9F43" : "#6a92c9", fontSize: 9}}>{seqMode ? yScopeLabel + (note ? " · " + note : "") : note}</div>
+                                </React.Fragment>
+                            );
+                        })}
+                    </div>
+                    <div style={S.lamNote}>5년 누적 ΔEBITDA {fmt(D.cum)} · 유효 churn {(D.churnEff * 100).toFixed(0)}%/년 (= churn₀ {(T.churn0 * 100).toFixed(0)}% × RPM δ
+                        완충{lv.rpm && lv.m3 ? " 적용" : " 미적용 — RPM OFF"}) {D.capHitYear ? `· ⚠ Y${D.capHitYear} capacity 도달 → 3호 사이트/증설 트리거` : "· capacity 여유 유지"}. §8 합의: 가격 동결·계수 개선 0·κ=0 — 복리는 M3 저수지
+                        축적에서만. 자연성장 매출은 Loop 귀속에서 제외. {seqMode ? "순차확장: Y1=외래 단독→Y2=검진 추가→Y3=기업 스코프 개시(가드레일 12 조건부, 앵커 스포크부터)." : ""}</div>
+                </div>
+
+                <div style={S.card}>
+                    <div style={S.cardHead}><Layers size={13}/> 청구성공률 (청구가 입금되는 비율) — 레인지 조절</div>
+                    <div style={S.lamRow}>
+                        <input type="range" min="0.85" max="0.99" step="0.01" value={succ.on} onChange={(e) => setSucc({...succ, on: parseFloat(e.target.value)})} style={{flex: 1}}/>
+                        <div style={S.lamVal}>{(succ.on * 100).toFixed(0)}%</div>
+                    </div>
+                    <div style={S.lamNote}>게이트 ON (clean-claim 가동): 자격확인→사전승인→문서완결→코드정합이 갖춰진 청구의 성공률 [ASS 93%].</div>
+                    <div style={{...S.lamRow, marginTop: 10}}>
+                        <input type="range" min="0.70" max="0.95" step="0.01" value={succ.off} onChange={(e) => setSucc({...succ, off: parseFloat(e.target.value)})} style={{flex: 1}}/>
+                        <div style={S.lamVal}>{(succ.off * 100).toFixed(0)}%</div>
+                    </div>
+                    <div style={S.lamNote}>게이트 OFF (무대책): 신규 코드를 검증 없이 청구할 때의 성공률 [ASS 80%]. 차이 {((succ.on - succ.off) * 100).toFixed(0)}%p가 게이트의 가치 = 연 {fmt(R.rcmAverted * 12)} 방어. 실측(4대 보험사 거절률)이 오면
+                        [DR] 교체.
+                    </div>
+                </div>
+
+                <div style={S.card}>
+                    <div style={S.cardHead}><Layers size={13}/> Loop 구축·운영 비용 [v2.6 · ASS]</div>
+                    <div style={S.inputGrid}>
+                        {[["fixed", "플랫폼 고정 $/월", "네트워크 1회"], ["perSite", "사이트당 $/월", "×사이트 수"], ["perLife", "M3 인당 $/월", "×스톡"], ["capex", "구축 capex $", "회수기간만"]].map(([k, l, u]) => (
+                            <div key={k} style={S.inputCell}>
+                                <label style={S.inputLabel}>{l}</label>
+                                <div style={S.inputWrap}>
+                                    <input style={S.input} type="number" value={oc[k]} onChange={(e) => setOc({...oc, [k]: parseFloat(e.target.value) || 0})}/>
+                                    <span style={S.inputUnit}>{u}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div style={S.lamNote}>opex = 고정 {fmt(oc.fixed)} + 사이트당 {fmt(oc.perSite)}×{site === "comb" ? 2 : 1} + 인당 ${oc.perLife}×{R.m3Lives.toFixed(0)}명 = 월 {fmt(R.opex)} → ΔEBITDA에서 차감.
+                        capex {fmt(oc.capex)}는 EBITDA 밖 — 회수 {R.payback === Infinity ? "—" : R.payback.toFixed(0) + "개월"} (가드레일 13). 합산 선택 시 고정비가 2사이트에 분산 — 스케일 경제가 자동 표시. ★ 라이선스료 없음: JV에 루프 판권 현물출자로 대체
+                        (JV 정산구조 [PENDING]). ★ opex 인건비는 M3 기본 스톡 운영분 — B2b(AI 증원회피)와 중복 금지.
+                    </div>
+                </div>
+
+                <div style={S.card}>
+                    <div style={S.cardHead}><Link2 size={13}/> κ 교차 리프트 (기본 0 · 실측 전제)</div>
+                    <div style={S.lamRow}>
+                        <input type="range" min="0" max="0.30" step="0.01" value={kap.k1} onChange={(e) => setKap({...kap, k1: parseFloat(e.target.value)})} style={{flex: 1}}/>
+                        <div style={S.lamVal}>κ₁ {kap.k1.toFixed(2)}</div>
+                    </div>
+                    <div style={S.lamNote}>κ₁ (B1a→B1c): 원격 옵션이 '업무 바쁨' [DR] 해소 → FU 회복 리프트. κ₂ (RPM→Rx·W5): 기기 데이터의 이탈·순응 개선. 기본 0 — Pilot H₀:κ≤0 검정 전 0 유지 (가드레일 11).</div>
+                    <div style={{...S.lamRow, marginTop: 10}}>
+                        <input type="range" min="0" max="0.30" step="0.01" value={kap.k2} onChange={(e) => setKap({...kap, k2: parseFloat(e.target.value)})} style={{flex: 1}}/>
+                        <div style={S.lamVal}>κ₂ {kap.k2.toFixed(2)}</div>
+                    </div>
+                </div>
+
+                <div style={S.card}>
+                    <div style={S.cardHead}><HardDrive size={13}/> RPM 기기 파트너십 · <Cpu size={13}/> AI span</div>
+                    <div className="lv" style={{...S.lever, cursor: "pointer"}} onClick={() => setDevPartner(!devPartner)}>
+                        <div style={{...S.toggle, background: devPartner ? "#2E7D52" : "#232a38"}}>
+                            <div style={{...S.knob, transform: devPartner ? "translateX(16px)" : "none"}}/>
+                        </div>
+                        <div style={{flex: 1}}>
+                            <div style={S.leverName}>{devPartner ? "파트너십 ON — 기기 상각 $0" : "자체 조달 — 기기 상각 반영"}</div>
+                            <div style={S.leverSub}>기기사(화웨이·샤오미 등)가 HW 공급 + 비식별 데이터 파트너십 [PENDING: PIPL] — 대가는 별도 계약 (가드레일 10)</div>
+                        </div>
+                        <div style={{...S.leverVal, color: "#A87BE8"}}>RPM {sign(R.parts.rpm * 12)}{fmt(Math.abs(R.parts.rpm * 12))}</div>
+                    </div>
+                    <div style={S.lamNote}>AI 케어매니저(B2b): span {inpSZ.spanBase}→{T.aiSpan}명/인 — M3 스톡 {R.m3Lives.toFixed(0)}명의 증원 회피 = {sign(R.parts.ai * 12)}{fmt(Math.abs(R.parts.ai * 12))}/년. 코디네이션만 대체
+                        — physician-supervised (가드레일 9).
+                    </div>
+                </div>
+
+                <div style={S.card}>
+                    <div style={{...S.cardHead, cursor: "pointer"}} onClick={() => setShowInputs(!showInputs)}>
+                        <ChevronDown size={13} style={{transform: showInputs ? "none" : "rotate(-90deg)", transition: "transform .2s"}}/> 병원 수치 입력 {showInputs ? "" : "(펼치기)"}
+                    </div>
+                    {showInputs && (
+                        <>
+                            <div style={{display: "flex", gap: 6, marginBottom: 10}}>
+                                {[{id: "sz", l: "심천 [DR]"}, {id: "bj", l: "북경 [ASS]"}].map((s) => (
+                                    <button key={s.id} className="seg" onClick={() => setEditSite(s.id)} style={{...S.segSm, ...(editSite === s.id ? S.segOn : {})}}>{s.l}</button>
+                                ))}
+                            </div>
+                            <div style={S.inputGrid}>
+                                {[["monthlyVisits", "월 외래방문", "회"], ["arpu", "외래 ARPU ★", "$"], ["missedRate", "FU 미방문율", "%"], ["capUtil", "슬롯 가동률", "%"],
+                                    ["fixedCost", "월 고정비", "$"], ["varCostPct", "가변비율", "%"], ["chronicPanel", "만성 panel", "명"], ["coordN", "코디 인원", "명"],
+                                    ["monthlyScreens", "월 검진 (S2)", "건"], ["scrPrice", "검진 단가 (S2)", "$"], ["monthlyUnbilled", "무상 상담/월", "건"], ["leakRate", "청구 누락률", "%"],
+                                    ["insShare", "보험청구 비중", "%"], ["denial0", "무RCM 거절률", "%"], ["rpmFee", "RPM 이용료", "$"], ["mgrCost", "케어매니저 $/월", "$"]].map(([k, l, u]) => (
+                                    <div key={k} style={S.inputCell}>
+                                        <label style={S.inputLabel}>{l}</label>
+                                        <div style={S.inputWrap}>
+                                            <input style={S.input} type="number" step={String(inp[k]).includes(".") ? "0.01" : "1"} value={inp[k]} onChange={set(k)}/>
+                                            <span style={S.inputUnit}>{u}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                                <div style={S.inputFoot}>편집 대상: {editSite === "sz" ? "심천 (1차 실사 [DR])" : "북경 (전부 [ASS] — 외래 65k/년의 환자vs방문 구분 실사확인 필요)"}. 기업 네트워크 207k·계약당 3,000명은 네트워크 상수 (합산×③에서만 사용).
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                <div style={S.warnBox}>
+                    <div style={S.warn}><TriangleAlert size={12} style={{flexShrink: 0, marginTop: 1}}/>
+                        <span>북경 열 전부 [ASS] — 실사 확인 전 별표. ARPU·원가 [ASS] — 대외 프라이싱 금지. 보고는 밴드로만.</span></div>
+                    <div style={S.warn}><TriangleAlert size={12} style={{flexShrink: 0, marginTop: 1}}/>
+                        <span>기업 레버(B3·C1·R1) = 안정화 조건부 (가드레일 12) — 실패 시 기존 위탁 33개사 이탈 리스크. Pilot 계수 [DR] 검증 후 해금.</span></div>
+                    <div style={S.warn}><TriangleAlert size={12} style={{flexShrink: 0, marginTop: 1}}/>
+                        <span>확장 경로 = 매트릭스 대각선: 심천① Pilot(계수 검증) → 합산②(코어) → 검증 후 합산③.</span></div>
+                </div>
+
+                <div style={S.footer}>
+                    v3.3 — §11 JV 구조를 실제 term sheet로 교체(대칭 이중 라이선싱, 로열티10%) · 5개년 동적 프로젝션에 순차확장 모드 추가(Y1외래→Y2검진→Y3기업, 합산 도메인 전용) — 기존 고정범위 모드와 토글 전환.
+                </div>
+            </div>
+        );
+    }
+
+    const styles = {
+        root: {
+            maxWidth: 780,
+            margin: "0 auto",
+            padding: "16px 14px 28px",
+            background: "#0d1017",
+            minHeight: "100vh",
+            color: "#cdd6e6",
+            fontFamily: "-apple-system, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif"
+        },
+        header: {display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14},
+        kicker: {fontSize: 9, letterSpacing: 1.2, color: "#5b6577", fontWeight: 800, fontFamily: "ui-monospace, monospace", marginBottom: 3},
+        title: {fontSize: 16.5, fontWeight: 800, color: "#f0f3f9", lineHeight: 1.25},
+        segRow: {display: "flex", gap: 6, marginBottom: 10},
+        seg: {flex: 1, background: "#12161f", border: "1px solid #232a38", color: "#8792a6", borderRadius: 9, padding: "8px 0", fontSize: 12, fontWeight: 700, cursor: "pointer"},
+        segSm: {flex: 1, background: "#12161f", border: "1px solid #232a38", color: "#8792a6", borderRadius: 9, padding: "7px 0", fontSize: 11, fontWeight: 700, cursor: "pointer"},
+        segOn: {background: "#20304F", color: "#CFE0FF", borderColor: "#3a4d78"},
+        mxGrid: {display: "grid", gridTemplateColumns: "78px 1fr 1fr 1fr", gap: 5},
+        mxCorner: {},
+        mxColHead: {fontSize: 10, color: "#8792a6", fontWeight: 800, textAlign: "center", padding: "4px 0"},
+        mxRowHead: {fontSize: 10, color: "#8792a6", fontWeight: 800, display: "flex", alignItems: "center"},
+        mxCell: {background: "#0d1017", border: "1px solid #232a38", borderRadius: 9, padding: "11px 4px", textAlign: "center", transition: "all .15s"},
+        mxCellOn: {background: "#16302e", borderColor: "#2E7D6E"},
+        mxCellDis: {background: "#0d1017", borderStyle: "dashed", opacity: 0.55},
+        hero: {background: "#12161f", border: "1px solid #232a38", borderRadius: 14, padding: "16px 14px", marginBottom: 10, textAlign: "center"},
+        heroLabel: {fontSize: 10, color: "#7a859a", fontWeight: 700, marginBottom: 4},
+        heroNum: {fontSize: 32, fontWeight: 800, fontFamily: "ui-monospace, monospace", lineHeight: 1.1},
+        heroMeta: {display: "flex", justifyContent: "center", gap: 8, fontSize: 10, color: "#7a859a", marginTop: 6, flexWrap: "wrap"},
+        metaDiv: {color: "#3a4356"},
+        bandWrap: {marginTop: 12, padding: "0 6px"},
+        bandTrack: {position: "relative", height: 6, background: "#0d1017", borderRadius: 3},
+        bandFill: {position: "absolute", top: 0, height: 6, background: "#23405c", borderRadius: 3},
+        bandMark: {position: "absolute", top: -3, width: 3, height: 12, background: "#4FD1C5", borderRadius: 2, transform: "translateX(-1px)"},
+        bandZero: {position: "absolute", top: -4, width: 1, height: 14, background: "#5b6577"},
+        bandLabels: {display: "flex", justifyContent: "space-between", fontSize: 10, color: "#5b6577", marginTop: 7, fontFamily: "ui-monospace, monospace"},
+        chips: {display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6, marginBottom: 14},
+        chip: {background: "#12161f", border: "1px solid", borderRadius: 11, padding: "9px 8px"},
+        chipDot: {width: 7, height: 7, borderRadius: 4, marginBottom: 5},
+        chipName: {fontSize: 8.5, color: "#8792a6", fontWeight: 700, lineHeight: 1.2, height: 22},
+        chipVal: {fontSize: 12.5, fontWeight: 800, fontFamily: "ui-monospace, monospace", marginTop: 2},
+        chipTag: {fontSize: 7.5, color: "#5b6577", marginTop: 3, lineHeight: 1.2},
+        card: {background: "#12161f", border: "1px solid #232a38", borderRadius: 14, padding: 14, marginBottom: 12},
+        cardHead: {display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "#8792a6", marginBottom: 12, letterSpacing: 0.3},
+        wfRow: {display: "flex", alignItems: "center", gap: 8, marginBottom: 8},
+        wfLabel: {width: 64, fontSize: 10.5, color: "#a9b3c6", flexShrink: 0},
+        wfBarWrap: {flex: 1, height: 14, background: "#0d1017", borderRadius: 3, overflow: "hidden"},
+        wfBar: {height: 14, borderRadius: 3, transition: "width .35s cubic-bezier(.4,0,.2,1)"},
+        wfVal: {width: 72, textAlign: "right", fontSize: 10.5, fontFamily: "ui-monospace, monospace", flexShrink: 0},
+        wfNet: {
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderTop: "1px solid #232a38",
+            marginTop: 6,
+            paddingTop: 10,
+            fontSize: 13,
+            fontWeight: 700,
+            color: "#f0f3f9",
+            fontFamily: "ui-monospace, monospace"
+        },
+        lever: {display: "flex", alignItems: "center", gap: 11, padding: "8px 4px", cursor: "pointer", borderBottom: "1px solid #1a2029", transition: "opacity .2s"},
+        toggle: {width: 34, height: 18, borderRadius: 10, padding: 2, flexShrink: 0, transition: "background .2s"},
+        knob: {width: 14, height: 14, borderRadius: 7, background: "#f0f3f9", transition: "transform .2s"},
+        leverName: {fontSize: 12, fontWeight: 700, color: "#e2e8f2"},
+        leverSub: {fontSize: 9.5, color: "#7a859a", marginTop: 1, lineHeight: 1.3},
+        leverCap: {fontSize: 8.5, color: "#5b6577", marginTop: 2, fontFamily: "ui-monospace, monospace"},
+        leverVal: {fontSize: 10.5, fontFamily: "ui-monospace, monospace", flexShrink: 0, minWidth: 62, textAlign: "right"},
+        lamRow: {display: "flex", alignItems: "center", gap: 12},
+        lamVal: {fontSize: 15, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#FF9F43", minWidth: 62, textAlign: "right"},
+        lamNote: {fontSize: 10, color: "#7a859a", marginTop: 9, lineHeight: 1.45},
+        inputGrid: {display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9},
+        inputCell: {},
+        inputLabel: {fontSize: 9.5, color: "#7a859a", display: "block", marginBottom: 3},
+        inputWrap: {display: "flex", alignItems: "center", background: "#0d1017", border: "1px solid #232a38", borderRadius: 7, padding: "0 8px"},
+        input: {flex: 1, background: "transparent", border: "none", color: "#f0f3f9", fontSize: 13, padding: "8px 0", outline: "none", fontFamily: "ui-monospace, monospace", width: "100%"},
+        inputUnit: {fontSize: 10, color: "#5b6577", marginLeft: 4},
+        inputFoot: {gridColumn: "1 / -1", fontSize: 9, color: "#5b6577", lineHeight: 1.5, marginTop: 4},
+        warnBox: {display: "flex", flexDirection: "column", gap: 7, marginBottom: 12},
+        warn: {
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 7,
+            background: "#1a1410",
+            border: "1px solid #3a2f1c",
+            borderRadius: 9,
+            padding: "8px 10px",
+            fontSize: 10.5,
+            color: "#d6c8a8",
+            lineHeight: 1.35
+        },
+        footer: {fontSize: 9.5, color: "#5b6577", lineHeight: 1.5, marginTop: 8, padding: "0 2px"},
+    };
+
+    document.getElementById('root').dataset.mounted = 'true';
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
