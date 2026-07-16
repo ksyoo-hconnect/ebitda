@@ -905,6 +905,7 @@
           const DYN = useMemo(() => computeDynamic(SCEN[scen], lv, inp, regime, lambda, selBias, formulas), [scen, lv, inp, regime, lambda, selBias, formulas]);
           const viewport = useViewport();
           const S = useMemo(() => createStyles(viewport), [viewport]);
+          const isWide = viewport >= 900;
 
           const fmt = (usd) => {
             if (cur === "KRW") { const e = (usd * fx) / 1e8; return `${Math.abs(e) >= 100 ? e.toFixed(0) : e.toFixed(1)}억`; }
@@ -934,43 +935,8 @@
           const bLo = Math.min(band.lo, 0), bHi = Math.max(band.hi, R.net, 0);
           const range = bHi - bLo || 1;
           const pct = (v) => `${((v - bLo) / range) * 100}%`;
-
-          return (
-            <div style={S.root}>
-              <style>{`*{box-sizing:border-box;}
-                input[type=number]{-moz-appearance:textfield;}
-                input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
-                .seg:hover{background:#1c2230;} .lv:active{transform:scale(.99);}
-                input[type=range]{accent-color:#FF9F43;}
-                button,input{font:inherit;}
-                button{touch-action:manipulation;}`}</style>
-
-              <div style={S.header}>
-                <div>
-                  <div style={S.kicker}>PATIENT JOURNEY × CAPTURE × ROI · v3.8</div>
-                  <div style={S.title}>루프 적용 EBITDA 개선 추정모델</div>
-                </div>
-                <div style={S.curToggle}>
-                  {["USD", "KRW"].map((c) => (
-                    <button key={c} onClick={() => setCur(c)} style={{ ...S.curBtn, ...(cur === c ? S.curBtnOn : {}) }}>{c}</button>
-                  ))}
-                </div>
-              </div>
-
-              <div style={S.segRow}>
-                {Object.keys(SCEN).map((s) => (
-                  <button key={s} className="seg" onClick={() => pickScen(s)} style={{ ...S.seg, ...(scen === s ? S.segOn : {}) }}>{SCEN[s].label}</button>
-                ))}
-              </div>
-
-              <div style={S.regimeLabel}>에피소드 책임구조 — TM value(θ) 게이팅</div>
-              <div style={S.segRow}>
-                {Object.keys(REGIME).map((r) => (
-                  <button key={r} className="seg" onClick={() => setRegime(r)} style={{ ...S.segSm, ...(regime === r ? S.segOn : {}) }}>{REGIME[r].label}</button>
-                ))}
-              </div>
-              <div style={S.regimeNote}>{REGIME[regime].note} · θ×{R.rmultEff.toFixed(2)}{R.apcmFloor ? " (APCM 게이트 floor 0.5 적용)" : ""}</div>
-
+          const annualSummary = (
+            <>
               <div style={S.hero}>
                 <div style={S.heroLabel}>순 ΔEBITDA / 년 (opex 차감 후)</div>
                 <div style={{ ...S.heroNum, color: R.net >= 0 ? "#4FD1C5" : "#E06C75" }}>{sign(R.net)}{fmt(Math.abs(R.net))}</div>
@@ -1014,55 +980,46 @@
                   </div>
                 ))}
               </div>
+            </>
+          );
 
-              <div style={S.dynamicHero}>
+          return (
+            <div style={S.root}>
+              <style>{`*{box-sizing:border-box;}
+                input[type=number]{-moz-appearance:textfield;}
+                input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+                .seg:hover{background:#1c2230;} .lv:active{transform:scale(.99);}
+                input[type=range]{accent-color:#FF9F43;}
+                button,input{font:inherit;}
+                button{touch-action:manipulation;}`}</style>
+
+              <div style={S.header}>
                 <div>
-                  <div style={S.heroLabel}>5개년 누적 순ΔEBITDA <span style={S.inlineTag}>v3.8 dynamic</span></div>
-                  <div style={{ ...S.heroNum, color: "#6d9df7" }}>{sign(DYN.cumulative)}{fmt(Math.abs(DYN.cumulative))}</div>
-                  <div style={S.heroMeta}>
-                    <span>Y5 run-rate {sign(DYN.y5.net)}{fmt(Math.abs(DYN.y5.net))}</span><span style={S.metaDiv}>·</span>
-                    <span>회수 {DYN.paybackYear ? `Y${DYN.paybackYear}` : ">Y5"}</span><span style={S.metaDiv}>·</span>
-                    <span>NPV@10% {sign(DYN.npv)}{fmt(Math.abs(DYN.npv))}</span>
-                  </div>
+                  <div style={S.kicker}>PATIENT JOURNEY × CAPTURE × ROI · v3.8</div>
+                  <div style={S.title}>루프 적용 EBITDA 개선 추정모델</div>
                 </div>
-                <div style={S.dynamicMetrics}>
-                  <div style={S.dynamicMetric}><span>Gross CAPEX</span><b>{fmt(R.capex)}</b></div>
-                  <div style={S.dynamicMetric}><span>RHTP offset</span><b>{fmt((inp.rhtpOffset || 0) * 1e6)}</b></div>
-                  <div style={S.dynamicMetric}><span>Net investment</span><b>{fmt(DYN.netInvestment)}</b></div>
-                  <div style={S.dynamicMetric}><span>Y5 B4 recurring</span><b>{fmt(DYN.y5.b4)}</b></div>
-                  <div style={S.dynamicMetric}><span>Y5 Total impact</span><b>{fmt(DYN.totalEconomicImpact)}</b></div>
-                  <div style={S.dynamicMetric}><span>B4 5Y cumulative</span><b>{fmt(DYN.b4Cumulative)}</b></div>
+                <div style={S.curToggle}>
+                  {["USD", "KRW"].map((c) => (
+                    <button key={c} onClick={() => setCur(c)} style={{ ...S.curBtn, ...(cur === c ? S.curBtnOn : {}) }}>{c}</button>
+                  ))}
                 </div>
               </div>
 
-              <div style={S.yearGrid}>
-                {DYN.years.map((y) => (
-                  <div key={y.year} style={S.yearCard}>
-                    <div style={S.yearHead}>Y{y.year}</div>
-                    <div style={{ ...S.yearNet, color: y.net >= 0 ? "#4FD1C5" : "#E06C75" }}>{sign(y.net)}{fmt(Math.abs(y.net))}</div>
-                    <div style={S.yearRow}><span>B0</span><b>{fmt(y.b0)}</b></div>
-                    <div style={S.yearRow}><span>B1</span><b>{fmt(y.b1)}</b></div>
-                    <div style={S.yearRow}><span>B2</span><b>{fmt(y.b2)}</b></div>
-                    <div style={S.yearRow}><span>B3</span><b>{fmt(y.b3)}</b></div>
-                  </div>
+              <div style={S.segRow}>
+                {Object.keys(SCEN).map((s) => (
+                  <button key={s} className="seg" onClick={() => pickScen(s)} style={{ ...S.seg, ...(scen === s ? S.segOn : {}) }}>{SCEN[s].label}</button>
                 ))}
               </div>
 
-              <div style={S.chips}>
-                {[
-                  ["B0", DYN.y5.b0, "#6d9df7", "Volume Expansion"],
-                  ["B1", DYN.y5.b1, LAYER_META.B1.color, "Direct Revenue"],
-                  ["B2", DYN.y5.b2, LAYER_META.B2.color, "Cost Efficiency"],
-                  ["B3", DYN.y5.b3, LAYER_META.B3.color, "Value-Based"],
-                ].map(([k, v, color, label]) => (
-                  <div key={k} style={{ ...S.chip, borderColor: color + "55" }}>
-                    <div style={{ ...S.chipDot, background: color }} />
-                    <div style={S.chipName}>Y5 · {k} · {label}</div>
-                    <div style={{ ...S.chipVal, color }}>{fmt(v)}</div>
-                    <div style={S.chipTag}>{k === "B0" ? "local recapture + panel activation" : "steady-state layer"}</div>
-                  </div>
+              <div style={S.regimeLabel}>에피소드 책임구조 — TM value(θ) 게이팅</div>
+              <div style={S.segRow}>
+                {Object.keys(REGIME).map((r) => (
+                  <button key={r} className="seg" onClick={() => setRegime(r)} style={{ ...S.segSm, ...(regime === r ? S.segOn : {}) }}>{REGIME[r].label}</button>
                 ))}
               </div>
+              <div style={S.regimeNote}>{REGIME[regime].note} · θ×{R.rmultEff.toFixed(2)}{R.apcmFloor ? " (APCM 게이트 floor 0.5 적용)" : ""}</div>
+
+              {!isWide && annualSummary}
 
               <div style={S.dashboard}>
                 <div style={S.mainCol}>
@@ -1143,6 +1100,9 @@
                     )}
                   </div>
 
+                </div>
+
+                <div style={S.sideCol}>
                   <div style={S.card}>
                     <div style={S.cardHead}><Power size={13} /> 레버 ON / OFF</div>
                     {["B1", "B2", "B3"].map((layer) => (
@@ -1179,9 +1139,7 @@
                       </div>
                     ))}
                   </div>
-                </div>
 
-                <div style={S.sideCol}>
                   <div style={S.card}>
                     <div style={S.cardHead}><Link2 size={13} /> λ·κ 커플링 (LOS/HRR cross)</div>
                     <div style={S.lamRow}>
@@ -1309,6 +1267,57 @@
                 </div>
               </div>
 
+              {isWide && annualSummary}
+
+              <div style={S.dynamicHero}>
+                <div>
+                  <div style={S.heroLabel}>5개년 누적 순ΔEBITDA <span style={S.inlineTag}>v3.8 dynamic</span></div>
+                  <div style={{ ...S.heroNum, color: "#6d9df7" }}>{sign(DYN.cumulative)}{fmt(Math.abs(DYN.cumulative))}</div>
+                  <div style={S.heroMeta}>
+                    <span>Y5 run-rate {sign(DYN.y5.net)}{fmt(Math.abs(DYN.y5.net))}</span><span style={S.metaDiv}>·</span>
+                    <span>회수 {DYN.paybackYear ? `Y${DYN.paybackYear}` : ">Y5"}</span><span style={S.metaDiv}>·</span>
+                    <span>NPV@10% {sign(DYN.npv)}{fmt(Math.abs(DYN.npv))}</span>
+                  </div>
+                </div>
+                <div style={S.dynamicMetrics}>
+                  <div style={S.dynamicMetric}><span>Gross CAPEX</span><b>{fmt(R.capex)}</b></div>
+                  <div style={S.dynamicMetric}><span>RHTP offset</span><b>{fmt((inp.rhtpOffset || 0) * 1e6)}</b></div>
+                  <div style={S.dynamicMetric}><span>Net investment</span><b>{fmt(DYN.netInvestment)}</b></div>
+                  <div style={S.dynamicMetric}><span>Y5 B4 recurring</span><b>{fmt(DYN.y5.b4)}</b></div>
+                  <div style={S.dynamicMetric}><span>Y5 Total impact</span><b>{fmt(DYN.totalEconomicImpact)}</b></div>
+                  <div style={S.dynamicMetric}><span>B4 5Y cumulative</span><b>{fmt(DYN.b4Cumulative)}</b></div>
+                </div>
+              </div>
+
+              <div style={S.yearGrid}>
+                {DYN.years.map((y) => (
+                  <div key={y.year} style={S.yearCard}>
+                    <div style={S.yearHead}>Y{y.year}</div>
+                    <div style={{ ...S.yearNet, color: y.net >= 0 ? "#4FD1C5" : "#E06C75" }}>{sign(y.net)}{fmt(Math.abs(y.net))}</div>
+                    <div style={S.yearRow}><span>B0</span><b>{fmt(y.b0)}</b></div>
+                    <div style={S.yearRow}><span>B1</span><b>{fmt(y.b1)}</b></div>
+                    <div style={S.yearRow}><span>B2</span><b>{fmt(y.b2)}</b></div>
+                    <div style={S.yearRow}><span>B3</span><b>{fmt(y.b3)}</b></div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={S.chips}>
+                {[
+                  ["B0", DYN.y5.b0, "#6d9df7", "Volume Expansion"],
+                  ["B1", DYN.y5.b1, LAYER_META.B1.color, "Direct Revenue"],
+                  ["B2", DYN.y5.b2, LAYER_META.B2.color, "Cost Efficiency"],
+                  ["B3", DYN.y5.b3, LAYER_META.B3.color, "Value-Based"],
+                ].map(([k, v, color, label]) => (
+                  <div key={k} style={{ ...S.chip, borderColor: color + "55" }}>
+                    <div style={{ ...S.chipDot, background: color }} />
+                    <div style={S.chipName}>Y5 · {k} · {label}</div>
+                    <div style={{ ...S.chipVal, color }}>{fmt(v)}</div>
+                    <div style={S.chipTag}>{k === "B0" ? "local recapture + panel activation" : "steady-state layer"}</div>
+                  </div>
+                ))}
+              </div>
+
               <div style={S.footer}>
                 v3.8: W/M1/M2/M3를 Loop patient journey에 정합(M1 외래 triage→M2 입원·처치→M3 퇴원후 Loop→W wellness). IRS+는 M1 activation 투자비로 처리하고 직접 환급 0, M2/M3 포착률·유지율 uplift만 ROI에 반영.
                 v3.7.2: v3.7.1 엔진과 계산식 편집 기능을 유지하고 5개년 동적 확산 레이어를 추가. B0 Volume Expansion(점유율 회복 + panel 활성화) · B4 RHTP 분리 · RCM 실현율 갭 방식(gross×gap×α_rcm, gross=0이면 구식 fallback).
@@ -1327,7 +1336,7 @@
           const tablet = vw >= 640;
           const compact = vw < 430;
           return {
-          root: { width: "100%", maxWidth: wide ? 1180 : 560, margin: "0 auto", padding: wide ? "24px 24px 48px" : compact ? "12px 10px 32px" : "16px 14px 40px", background: "#0d1017", color: "#cdd6e6", minHeight: "100vh", fontFamily: "ui-sans-serif, -apple-system, 'Segoe UI', sans-serif" },
+          root: { width: "100%", maxWidth: wide ? 1280 : 560, margin: "0 auto", padding: wide ? "18px 20px 32px" : compact ? "12px 10px 32px" : "16px 14px 40px", background: "#0d1017", color: "#cdd6e6", minHeight: "100vh", fontFamily: "ui-sans-serif, -apple-system, 'Segoe UI', sans-serif" },
           header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 14, flexWrap: "wrap" },
           kicker: { fontSize: 9.5, letterSpacing: 2, color: "#5b6577", fontWeight: 700, fontFamily: "ui-monospace, monospace" },
           title: { fontSize: wide ? 24 : 18, fontWeight: 800, letterSpacing: 0, color: "#f0f3f9", marginTop: 2, lineHeight: 1.2 },
@@ -1340,9 +1349,9 @@
           segOn: { background: "#1e2636", color: "#f0f3f9", borderColor: "#3a4558" },
           regimeLabel: { fontSize: 9.5, color: "#5b6577", fontWeight: 700, letterSpacing: 0.5, margin: "4px 0 6px" },
           regimeNote: { fontSize: 10, color: "#8792a6", margin: "7px 2px 16px", lineHeight: 1.4 },
-          hero: { background: "linear-gradient(160deg,#141b28,#0f141d)", border: "1px solid #232a38", borderRadius: 16, padding: wide ? "24px 26px 22px" : "18px 18px 16px", marginBottom: 14 },
+          hero: { background: "linear-gradient(160deg,#141b28,#0f141d)", border: "1px solid #232a38", borderRadius: 16, padding: wide ? "18px 20px 16px" : "18px 18px 16px", marginBottom: 12 },
           heroLabel: { fontSize: 11, color: "#8792a6", fontWeight: 600, marginBottom: 4 },
-          heroNum: { fontSize: wide ? 54 : compact ? 34 : 40, fontWeight: 800, letterSpacing: 0, fontFamily: "ui-monospace, monospace", lineHeight: 1, overflowWrap: "anywhere" },
+          heroNum: { fontSize: wide ? 46 : compact ? 34 : 40, fontWeight: 800, letterSpacing: 0, fontFamily: "ui-monospace, monospace", lineHeight: 1, overflowWrap: "anywhere" },
           heroMeta: { display: "flex", gap: 8, fontSize: 10.5, color: "#7a859a", marginTop: 10, fontFamily: "ui-monospace, monospace", flexWrap: "wrap" },
           metaDiv: { color: "#3a4558" },
           bandWrap: { marginTop: 14 },
@@ -1363,7 +1372,7 @@
           payerPct: { fontSize: 16, color: "#f0f3f9", fontWeight: 800, fontFamily: "ui-monospace, monospace", marginTop: 2 },
           payerRule: { fontSize: 8.5, color: "#5b6577", marginTop: 2, lineHeight: 1.25, minHeight: compact ? 0 : 22 },
           inlineTag: { display: "inline-block", fontSize: 9, color: "#6d9df7", background: "#101a2c", border: "1px solid #223a63", borderRadius: 5, padding: "1px 5px", marginLeft: 5, fontFamily: "ui-monospace, monospace" },
-          dynamicHero: { display: "grid", gridTemplateColumns: wide ? "minmax(0, 1.1fr) minmax(260px, .9fr)" : "1fr", gap: 12, background: "linear-gradient(160deg,#111a2b,#0f141d)", border: "1px solid #223a63", borderRadius: 16, padding: wide ? "20px 22px" : 16, marginBottom: 12 },
+          dynamicHero: { display: "grid", gridTemplateColumns: wide ? "minmax(0, 1fr) minmax(250px, .9fr)" : "1fr", gap: 10, background: "linear-gradient(160deg,#111a2b,#0f141d)", border: "1px solid #223a63", borderRadius: 16, padding: wide ? "16px 18px" : 16, marginBottom: 12 },
           dynamicMetrics: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignContent: "center" },
           dynamicMetric: { background: "#0d1017", border: "1px solid #232a38", borderRadius: 9, padding: "8px 9px", display: "flex", flexDirection: "column", gap: 2 },
           yearGrid: { display: "grid", gridTemplateColumns: compact ? "1fr" : wide ? "repeat(5, minmax(0, 1fr))" : "repeat(2, minmax(0, 1fr))", gap: 8, marginBottom: 14 },
@@ -1371,11 +1380,11 @@
           yearHead: { fontSize: 10, color: "#6d9df7", fontWeight: 900, fontFamily: "ui-monospace, monospace" },
           yearNet: { fontSize: 15, fontWeight: 900, fontFamily: "ui-monospace, monospace", margin: "3px 0 6px", overflowWrap: "anywhere" },
           yearRow: { display: "flex", justifyContent: "space-between", gap: 6, fontSize: 9.5, color: "#7a859a", borderTop: "1px solid #1a2029", paddingTop: 4, marginTop: 4 },
-          dashboard: { display: "grid", gridTemplateColumns: wide ? "minmax(0, 1.35fr) minmax(320px, .85fr)" : "1fr", gap: wide ? 16 : 0, alignItems: "start" },
-          mainCol: { minWidth: 0 },
-          sideCol: { minWidth: 0, position: wide ? "sticky" : "static", top: wide ? 18 : "auto" },
-          card: { background: "#12161f", border: "1px solid #232a38", borderRadius: 14, padding: tablet ? 16 : 14, marginBottom: 12, overflow: "hidden" },
-          cardHead: { display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "#8792a6", marginBottom: 12, letterSpacing: 0.3 },
+          dashboard: { display: "grid", gridTemplateColumns: wide ? "minmax(0, 1.15fr) minmax(380px, .85fr)" : "1fr", gap: wide ? 16 : 0, alignItems: "start" },
+          mainCol: { minWidth: 0, position: wide ? "sticky" : "static", top: wide ? 12 : "auto", alignSelf: "start" },
+          sideCol: { minWidth: 0, position: wide ? "sticky" : "static", top: wide ? 12 : "auto", maxHeight: wide ? "calc(100vh - 220px)" : "none", overflowY: wide ? "auto" : "visible", paddingRight: wide ? 4 : 0, scrollbarWidth: "thin" },
+          card: { background: "#12161f", border: "1px solid #232a38", borderRadius: 14, padding: wide ? "12px 13px" : tablet ? 16 : 14, marginBottom: wide ? 10 : 12, overflow: "hidden" },
+          cardHead: { display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "#8792a6", marginBottom: wide ? 8 : 12, letterSpacing: 0.3 },
           wfRow: { display: "grid", gridTemplateColumns: compact ? "86px minmax(54px, 1fr) 64px" : "118px minmax(80px, 1fr) 78px", alignItems: "center", gap: compact ? 6 : 8, marginBottom: 8 },
           wfLabel: { fontSize: 10.5, color: "#a9b3c6", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: compact ? "normal" : "nowrap" },
           wfBarWrap: { flex: 1, height: 14, background: "#0d1017", borderRadius: 3, overflow: "hidden" },
@@ -1384,15 +1393,15 @@
           wfNet: { display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #232a38", marginTop: 6, paddingTop: 10, fontSize: 13, fontWeight: 700, color: "#f0f3f9", fontFamily: "ui-monospace, monospace" },
           warnBox: { display: "flex", flexDirection: "column", gap: 7, marginBottom: 12 },
           warn: { display: "flex", alignItems: "flex-start", gap: 7, background: "#1a1410", border: "1px solid #3a2f1c", borderRadius: 9, padding: "8px 10px", fontSize: 10.5, color: "#d6c8a8", lineHeight: 1.35 },
-          layerBar: { fontSize: 10, fontWeight: 800, letterSpacing: 0.5, margin: "12px 0 6px", display: "flex", alignItems: "center", gap: 6 },
+          layerBar: { fontSize: 10, fontWeight: 800, letterSpacing: 0.5, margin: wide ? "8px 0 4px" : "12px 0 6px", display: "flex", alignItems: "center", gap: 6 },
           lamTag: { fontSize: 8.5, color: "#FF9F43", background: "#231a10", padding: "1px 5px", borderRadius: 4, fontWeight: 700 },
-          lever: { display: "flex", alignItems: "center", gap: 11, padding: "8px 4px", cursor: "pointer", borderBottom: "1px solid #1a2029", transition: "opacity .2s", minWidth: 0 },
+          lever: { display: "flex", alignItems: "center", gap: wide ? 8 : 11, padding: wide ? "5px 3px" : "8px 4px", cursor: "pointer", borderBottom: "1px solid #1a2029", transition: "opacity .2s", minWidth: 0 },
           toggle: { width: 34, height: 18, borderRadius: 10, padding: 2, flexShrink: 0, transition: "background .2s" },
           knob: { width: 14, height: 14, borderRadius: 7, background: "#f0f3f9", transition: "transform .2s" },
-          leverName: { fontSize: 12.5, fontWeight: 700, color: "#e2e8f2" },
-          leverSub: { fontSize: 9.5, color: "#7a859a", marginTop: 1 },
-          leverCap: { fontSize: 8.5, color: "#5b6577", marginTop: 2, fontFamily: "ui-monospace, monospace" },
-          leverVal: { fontSize: 11, fontFamily: "ui-monospace, monospace", flexShrink: 0, minWidth: compact ? 48 : 60, textAlign: "right", overflowWrap: "anywhere" },
+          leverName: { fontSize: wide ? 11.5 : 12.5, fontWeight: 700, color: "#e2e8f2" },
+          leverSub: { display: wide ? "none" : "block", fontSize: 9.5, color: "#7a859a", marginTop: 1 },
+          leverCap: { display: wide ? "none" : "block", fontSize: 8.5, color: "#5b6577", marginTop: 2, fontFamily: "ui-monospace, monospace" },
+          leverVal: { fontSize: wide ? 10.5 : 11, fontFamily: "ui-monospace, monospace", flexShrink: 0, minWidth: compact ? 48 : 60, textAlign: "right", overflowWrap: "anywhere" },
           stackRow: { display: "flex", alignItems: "center", gap: 8, padding: "7px 2px", borderBottom: "1px solid #1a2029" },
           stackName: { fontSize: 11.5, fontWeight: 700, color: "#e2e8f2" },
           stackMix: { fontSize: 9, color: "#7a859a", fontWeight: 600, marginLeft: 4 },
@@ -1401,7 +1410,7 @@
           stackFoot: { fontSize: 9, color: "#5b6577", lineHeight: 1.5, marginTop: 8 },
           lamRow: { display: "flex", alignItems: "center", gap: 12, minWidth: 0 },
           lamVal: { fontSize: 16, fontWeight: 800, fontFamily: "ui-monospace, monospace", color: "#FF9F43", minWidth: 40, textAlign: "right" },
-          lamNote: { fontSize: 10, color: "#7a859a", marginTop: 9, lineHeight: 1.45 },
+          lamNote: { fontSize: wide ? 9 : 10, color: "#7a859a", marginTop: wide ? 6 : 9, lineHeight: wide ? 1.3 : 1.45 },
           inputGrid: { display: "grid", gridTemplateColumns: wide ? "1fr" : compact ? "1fr" : "1fr 1fr", gap: 9 },
           inputCell: {},
           inputLabel: { fontSize: 9.5, color: "#7a859a", display: "block", marginBottom: 3 },
