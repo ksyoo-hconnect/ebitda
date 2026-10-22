@@ -47,6 +47,36 @@ input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;bac
 .seclabel{font-size:11px;font-weight:600;color:var(--in);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.5px}
 button:focus-visible,.chip:focus-visible,.sw:focus-visible{outline:2px solid var(--med);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+body{max-width:1400px}
+.workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+.workspace>*{min-width:0}
+canvas{max-width:100%}
+.settings-panel>summary,.formula-panel>summary{cursor:pointer;font-size:13px;font-weight:600;padding:4px 0}
+.settings-panel[open]>summary,.formula-panel[open]>summary{margin-bottom:12px}
+.input-group{border-top:1px solid var(--grid);padding:8px 0}
+.input-group>summary{cursor:pointer;font-size:12px;font-weight:600;color:var(--sub);padding:5px 0}
+.input-group .seclabel{margin-top:5px}
+.formula-panel{margin-top:16px}
+.formula-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.formula-status{font-size:12px;color:var(--med)}
+.formula-item{border-top:1px solid var(--grid);padding:12px 0;min-width:0}
+.formula-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.formula-heading h3{font-size:13px;margin:0}
+.formula-meta{font-size:11px;line-height:1.7;color:var(--sub);overflow-wrap:anywhere}
+.formula-item textarea{display:block;width:100%;min-height:64px;resize:vertical;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:9px;font:12px/1.6 ui-monospace,monospace;margin:8px 0}
+.formula-item textarea:focus{outline:2px solid var(--in)}
+.formula-item textarea[aria-invalid=true]{border-color:var(--cost)}
+.formula-error{color:var(--cost);font-size:11px;line-height:1.6}
+.formula-trace{font:11px/1.7 ui-monospace,monospace;overflow-wrap:anywhere}
+.formula-trace details{margin-top:6px}
+.formula-trace summary{cursor:pointer;color:var(--sub)}
+.formula-trace p{margin:6px 0;color:var(--sub)}
+.formula-trace strong{color:var(--fg)}
+#formula-errors:not(:empty){border-left:3px solid var(--cost);padding:10px 12px;margin-bottom:12px;color:var(--cost);font-size:12px;line-height:1.7}
+.formula-groups{display:grid;grid-template-columns:minmax(0,1fr);gap:0 24px}
+.settings-panel{margin:0}
+@media(min-width:1080px){.workspace{grid-template-columns:minmax(320px,.8fr) minmax(0,1.45fr)}.settings-panel{grid-column:1}.results-panel{grid-column:2}.formula-groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){body{padding-inline:12px}.formula-heading{align-items:flex-start}.formula-toolbar .chip{padding:7px}.formula-trace{font-size:10px}}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600&display=swap">
 
@@ -213,7 +243,7 @@ const K={
 };
 
 // Y1→Y5 선형보간 (Y1값, Y5목표)
-function ramp(y1,y5,y){return y1+(y5-y1)*(y/4);}
+function ramp(y1,y5,y,ctx,label='보간'){return ctx?ctx.eval('ramp',{start:y1,target:y5,year:y},label):y1+(y5-y1)*(y/4);}
 
 const PRESETS={
   kpmg:{name:'KPMG정합',set:{conv_med:13,conv_well:4,ref_rate:12,svc_fee:25,opex_rate:22,mktg:38,corpPen:0.4,bizdev:550,omRate:5,p1:false,p2:false},desc:'KPMG Base(EV $15.8M)에 맞춘 보수 가정 — 실사 정합용 기준'},
@@ -228,40 +258,136 @@ let yr=4;
 const fmt=n=>Math.round(n).toLocaleString('en-US');
 const fmtK=n=>(n/1000).toFixed(0)+'K';
 
+// Arithmetic-only expressions; business gates and stock iteration remain in code.
+const FORMULA_META=[
+  ['ramp','연차별 보간','ramp','start + (target - start) * (year / 4)','Y1 시작값에서 Y5 목표값까지의 선형 보간. year는 Y1=0, Y5=4.','start: 시작값; target: 목표값; year: 연도 인덱스','전환율·구독료·연계율·방문단가·마케팅비율'],
+  ['growth','환자 성장배수','siteRev','pow(1 + growthRate, year)','환자 기반의 연차별 자연 성장.','growthRate: 연성장률(소수); year: 연도 인덱스','검진·외래 인원과 파생 매출'],
+  ['screenMed','검진 Medical 전환','siteRev','nonHealthy * app * cmed','검진 위험군의 Medical 신규 구독 전환.','nonHealthy: 위험군 수; app: 앱 접점률; cmed: Medical 전환율(비율은 소수)','Medical 신규 유입·누적 구독자'],
+  ['screenWell','검진 Wellness 전환','siteRev','healthy * app * cwell','건강군의 Wellness 신규 구독 전환.','healthy: 건강군 수; app: 앱 접점률; cwell: Wellness 전환율','Wellness 구독자·가족 매출'],
+  ['outMed','외래 Medical 전환','siteRev','chronicN * app * cmed','외래 만성질환자의 Medical 전환.','chronicN: 만성질환자 수; app: 앱 접점률; cmed: Medical 전환율','Medical 신규 유입·누적 구독자'],
+  ['outWell','외래 Wellness 전환','siteRev','(out - chronicN) * app * cwell','외래 비만성 환자의 Wellness 전환.','out: 외래 인원; chronicN: 만성질환자 수; app: 앱 접점률; cwell: Wellness 전환율','Wellness 구독자·가족 매출'],
+  ['refRev','외래연계 매출','siteRev','refPatients * visits * visitCost * svcFee','검진 위험군 중 외래 연계 환자의 서비스 수수료 매출.','refPatients: 연계 환자 수; visits: 방문횟수; visitCost: 방문단가 USD; svcFee: 수수료율(소수)','Medical 매출·EBITDA'],
+  ['famRev','가족 매출','siteRev','subscribers * famSize * riskRatio * refRate * visits * visitCost * svcFee','당해 신규 구독자의 가족에서 발생하는 연계 매출. 저수지 잔류 스톡은 기존 계산과 같이 제외.','subscribers: 당해 신규 구독자; famSize: 가족 수; riskRatio: 위험군 비율; refRate: 연계율; visits: 방문횟수; visitCost: 방문단가 USD; svcFee: 수수료율','Medical 가족 매출·EBITDA'],
+  ['churn','유효 이탈률','effChurn','churn0 * (1 - rpmAdopt * rpmDelta)','RPM에 따른 연 이탈률 완충. 결과 허용 범위는 0~1.','churn0: 기본 이탈률; rpmAdopt: RPM 침투율; rpmDelta: 이탈감소 효과(모두 소수)','저수지 잔류·Medical 구독 매출'],
+  ['stock','Medical 구독자 누적','medStock','stock * retention + newMed','전년 잔류 스톡에 당해 신규 유입을 더함. Reservoir ON일 때만 사용.','stock: 전년 스톡; retention: 1-유효이탈률; newMed: 당해 Medical 신규 유입','Medical 활성 구독자·커머스 의료경로'],
+  ['subMed','Medical 구독 매출','calc','medActive * feeMed','활성 Medical 구독자에 연간 단가를 곱함.','medActive: 활성 Medical 구독자; feeMed: 연간 단가 USD','구독 매출·총매출'],
+  ['subWell','Wellness 구독 매출','calc','wellNew * feeWell','Wellness는 연간 신규만 반영.','wellNew: 신규 Wellness 구독자; feeWell: 연간 단가 USD','구독 매출·총매출'],
+  ['corpReach','기업병원 도달 인원','calc','corpPool * penetration * multiplier','기업병원 ON일 때 연차별 침투를 적용. 기본 Y1~2 침투는 0.','corpPool: 전체 풀; penetration: 연차별 침투율; multiplier: 침투 배율','기업 의료·기업 직구매 커머스'],
+  ['corpRev','기업병원 의료 매출','calc','corpReach * 0.95 * 0.10 * 180 + atRisk * 0.20 * visits * visitCost * svcFee','기존 기업 매출의 활성 항만 표시. 기존 식에서 0을 곱했던 구독 항은 결과에 영향 없음.','corpReach: 도달 인원; atRisk: 위험군 수(도달×0.46); visits: 방문횟수; visitCost: 방문단가 USD; svcFee: 수수료율','기업 의료 매출·EBITDA'],
+  ['commMed','커머스 의료경로 구매자','calc','subscribers * 0.40','커머스는 Y2부터 개시. 의료 활성 구독자 기반.','subscribers: Medical 활성+Wellness 신규','P1·P2 구매자 분모'],
+  ['commCorp','커머스 기업 직구매자','calc','corpReach * commCorpPen','기업병원 도달 인원의 직구매 전환. Y2부터 개시.','corpReach: 기업 도달 인원; commCorpPen: 직구매 침투율(소수)','P1·P2 구매자 분모'],
+  ['p1','P1 파마 매출','calc','commBuyers * 120 * 0.15 * 0.75 + commBuyers * coachFee * 12','P1 ON일 때 제품 수수료와 코칭 매출 합계.','commBuyers: 두 경로 구매자 합계; coachFee: 월 코칭료 USD','Commerce 매출·EBITDA'],
+  ['p2','P2 커머스 매출','calc','commBuyers * 200 * 0.20 + commBuyers * coachFee * 12','P2 ON일 때 제품 수수료와 코칭 매출 합계.','commBuyers: 두 경로 구매자 합계; coachFee: 월 코칭료 USD','Commerce 매출·EBITDA'],
+  ['labor','인건비','calc','laborUnit * staff','연도별 인원에 고정 인당 인건비 적용.','laborUnit: 연 인당 비용 USD; staff: 해당 연도 인원','공통비용·부문 비용배분'],
+  ['opex','운영비','calc','rev * opexRate','총매출 대비 운영비.','rev: 총매출 USD; opexRate: 운영비율(소수)','공통비용·EBITDA'],
+  ['mktg','마케팅 비용','calc','rev * mktgRate','연차별로 감소하는 마케팅비율 적용.','rev: 총매출 USD; mktgRate: 해당 연도 마케팅비율(소수)','공통비용·EBITDA'],
+  ['bizdev','사업개발비','calc','bizdevK * 1000','Y1~2에만 발생.','bizdevK: 입력한 사업개발비(천 USD)','공통비용·EBITDA'],
+  ['royalty','로열티','calc','rev * royaltyRate','총매출에 고정 로열티율 적용.','rev: 총매출 USD; royaltyRate: 로열티율(소수)','공통비용·EBITDA'],
+  ['om','HC 운영 수수료','calc','rev * omRate','총매출 대비 HC O&M 수수료.','rev: 총매출 USD; omRate: 수수료율(소수)','공통비용·EBITDA'],
+  ['commonCost','공통 비용 합계','calc','labor + opex + mktg + bizdev + royalty + om + hcCost + dep','기존 비용·CAPEX 귀속·감가 합계를 유지.','labor/opex/mktg/bizdev/royalty/om: 비용 USD; hcCost: CAPEX 귀속 ON일 때 금액; dep: 감가 USD','부문별 비용배분·총비용'],
+  ['segmentCost','부문 비용배분','calc','commonCost * share','매출 비중에 따라 공통비용 배분.','commonCost: 공통 비용 USD; share: Medical 또는 Commerce 매출 비중','Medical·Commerce 비용'],
+  ['segmentEbitda','부문 EBITDA','calc','revenue - (cost - dep * share)','배분 비용에서 부문 감가를 다시 제외.','revenue: 부문 매출; cost: 부문 비용; dep: 전체 감가 USD; share: 부문 매출 비중','Medical·Commerce EBITDA·5년 차트'],
+  ['totalEbitda','총 EBITDA','calc','rev - (totCost - dep)','총비용에서 감가를 다시 제외하는 기존 계산.','rev: 총매출; totCost: 총비용; dep: 감가(모두 USD)','Total 카드·시나리오 밴드·5년 차트·세금'],
+  ['tax','법인세','calc','ebit * taxRate','EBIT가 양수인 경우에만 적용.','ebit: EBITDA-감가; taxRate: 세율(소수)','세후 이익'],
+  ['nopat','세후 이익','calc','ebit - tax','EBIT에서 법인세 차감.','ebit: 영업이익; tax: 법인세 USD','Net income 표시'],
+].map(([key,label,fn,expr,meaning,variables,impact])=>({key,label,fn,expr,meaning,variables,impact}));
+const FORMULA_DEFAULTS=Object.freeze(Object.fromEntries(FORMULA_META.map(m=>[m.key,m.expr])));
+let formulas={...FORMULA_DEFAULTS};
+let formulaDrafts={...formulas};
+let lastFormulaRun=null;
+const mathFunctions={min:Math.min,max:Math.max,abs:Math.abs,round:Math.round,floor:Math.floor,ceil:Math.ceil,pow:Math.pow};
+const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+function parseFormula(expression,allowed){
+  if(typeof expression!=='string'||!expression.trim())throw Error('빈 수식입니다.');
+  if(expression.length>1200)throw Error('수식은 1200자 이내로 입력하세요.');
+  const tokens=[];let pos=0;
+  while(pos<expression.length){
+    if(/\s/.test(expression[pos])){pos++;continue;}
+    const match=/^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|^[A-Za-z_][A-Za-z0-9_]*|^[+*/%(),-]/.exec(expression.slice(pos));
+    if(!match)throw Error('허용되지 않는 문자입니다.');
+    tokens.push(match[0]);pos+=match[0].length;
+  }
+  let i=0;
+  function atom(){
+    const t=tokens[i++];
+    if(t==='+'||t==='-'){const n=atom();return v=>t==='-'?-n(v):n(v);}
+    if(t==='('){const n=sum();if(tokens[i++]!==')')throw Error('괄호를 확인하세요.');return n;}
+    if(t&&/^(?:\d|\.)/.test(t)){const n=Number(t);if(!Number.isFinite(n))throw Error('유효하지 않은 숫자입니다.');return ()=>n;}
+    if(t&&/^[A-Za-z_]/.test(t)){
+      if(tokens[i]==='('){
+        if(!own(mathFunctions,t))throw Error('허용되지 않는 함수: '+t);
+        i++;const args=[];
+        if(tokens[i]!==')'){args.push(sum());while(tokens[i]===','){i++;args.push(sum());}}
+        if(tokens[i++]!==')')throw Error('함수 괄호를 확인하세요.');
+        const arity=t==='pow'?2:(['min','max'].includes(t)?null:1);
+        if(!args.length||(arity!==null&&args.length!==arity))throw Error('함수 인자 수를 확인하세요.');
+        return v=>mathFunctions[t](...args.map(a=>a(v)));
+      }
+      if(!allowed.has(t))throw Error('알 수 없는 변수: '+t);
+      return v=>v[t];
+    }
+    throw Error('수식 문법을 확인하세요.');
+  }
+  function product(){let n=atom();while(['*','/','%'].includes(tokens[i])){const op=tokens[i++],a=n,b=atom();n=v=>{const x=a(v),y=b(v);return op==='*'?x*y:op==='/'?x/y:x%y;};}return n;}
+  function sum(){let n=product();while(['+','-'].includes(tokens[i])){const op=tokens[i++],a=n,b=product();n=v=>op==='+'?a(v)+b(v):a(v)-b(v);}return n;}
+  const result=sum();if(i!==tokens.length)throw Error('수식 끝의 문법을 확인하세요.');return result;
+}
+function formulaContext(expressions=formulas){
+  const traces=new Map(),errors=new Map(),compiled=new Map();
+  return {traces,errors,eval(key,vars,label){
+    const source=expressions[key]??FORMULA_DEFAULTS[key];
+    let value,error='';
+    const run=expr=>{
+      const cacheKey=key+'|'+expr;
+      if(!compiled.has(cacheKey))compiled.set(cacheKey,parseFormula(expr,new Set(Object.keys(vars))));
+      const n=compiled.get(cacheKey)(vars);
+      if(!Number.isFinite(n))throw Error('계산 결과가 유한한 숫자가 아닙니다.');
+      if(key==='churn'&&(n<0||n>1))throw Error('유효 이탈률은 0~1이어야 합니다.');
+      return n;
+    };
+    try{value=run(source);}catch(e){error=e.message;value=run(FORMULA_DEFAULTS[key]);errors.set(key,error);}
+    traces.set(key+'|'+label,{key,label,vars:{...vars},value,error});return value;
+  }};
+}
+const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const traceNumber=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:6});
+
 // ═══ 엑셀 로직 계산 엔진 ═══
-function siteRev(screen0,out0,chronic,y,refY1){
-  const g=Math.pow(1+K.growth,y);
+function siteRev(screen0,out0,chronic,y,refY1,ctx=formulaContext(),inputs=D,site='사이트'){
+  const D=inputs;
+  const label=site+' Y'+(y+1);
+  const f=(key,vars)=>ctx.eval(key,vars,label);
+  const r=(start,target,name)=>ramp(start,target,y,ctx,label+' '+name);
+  const g=f('growth',{growthRate:K.growth,year:y});
   const screen=screen0*g, out=out0*g;
-  const app=ramp(D.app_rate,100,y)/100;
-  const cmed=ramp(D.conv_med,80,y)/100;
-  const cwell=ramp(D.conv_well,10,y)/100;
-  const feeMed=ramp(D.fee_med,250,y);
-  const feeWell=ramp(D.fee_well,100,y);
+  const app=r(D.app_rate,100,'앱 접점률')/100;
+  const cmed=r(D.conv_med,80,'Medical 전환율')/100;
+  const cwell=r(D.conv_well,10,'Wellness 전환율')/100;
+  const feeMed=r(D.fee_med,250,'Medical 단가');
+  const feeWell=r(D.fee_well,100,'Wellness 단가');
 
   // 검진경로: 비건강(위험군) → Medical, 건강 → Wellness
   const nonHealthy=screen*K.risk_ratio;
   const healthy=screen*(1-K.risk_ratio);
-  const szMed_screen=nonHealthy*app*cmed;
-  const szWell_screen=healthy*app*cwell;
+  const szMed_screen=f('screenMed',{nonHealthy,app,cmed});
+  const szWell_screen=f('screenWell',{healthy,app,cwell});
   // 외래경로: 만성질환자 → Medical, 그외 → Wellness
   const chronicN=out*chronic;
-  const outMed=chronicN*app*cmed;
-  const outWell=(out-chronicN)*app*cwell;
+  const outMed=f('outMed',{chronicN,app,cmed});
+  const outWell=f('outWell',{out,chronicN,app,cwell});
 
   const subRev=(szMed_screen+outMed)*feeMed+(szWell_screen+outWell)*feeWell;
 
   // 외래연계: 검진 비건강인원 × 연계율 × 방문 × 진료비 × fee
   // refY1 = 사이트별 Y1 연계율 (심천=슬라이더값, 북경은 더 낮게). Y5는 둘다 80% 수렴
-  const refRate=ramp(refY1,80,y)/100;
-  const visitCost=ramp(D.visit_cost,300,y);
+  const refRate=r(refY1,80,'외래연계율')/100;
+  const visitCost=r(D.visit_cost,300,'방문단가');
   const refPatients=nonHealthy*refRate;
-  const refRev=refPatients*D.visits*visitCost*(D.svc_fee/100);
+  const refRev=f('refRev',{refPatients,visits:D.visits,visitCost,svcFee:D.svc_fee/100});
 
   // Family: 구독자 × 가족수 × 비건강비율 × 연계율 × 방문 × 진료비 × fee
   const subscribers=szMed_screen+szWell_screen+outMed+outWell;
-  const famMembers=subscribers*D.fam_size;
-  const famRef=famMembers*K.risk_ratio*refRate;
-  const famRev=famRef*D.visits*visitCost*(D.svc_fee/100);
+  const famRev=f('famRev',{subscribers,famSize:D.fam_size,riskRatio:K.risk_ratio,refRate,visits:D.visits,visitCost,svcFee:D.svc_fee/100});
 
   // 저수지용: Medical(만성) 신규 유입과 Wellness 신규, 구독료 분리 반환
   const medNew=szMed_screen+outMed;   // Medical 신규전환 (M3 저수지에 누적)
@@ -270,30 +396,35 @@ function siteRev(screen0,out0,chronic,y,refY1){
 }
 
 // 유효 churn = churn0 × (1 − rpmAdopt×δ) — RPM이 이탈의 마개 (v3.3 이식)
-function effChurn(){return (D.churn0/100)*(1-(D.rpmAdopt/100)*(D.rpmDelta/100));}
+function effChurn(ctx=formulaContext(),inputs=D){return ctx.eval('churn',{churn0:inputs.churn0/100,rpmAdopt:inputs.rpmAdopt/100,rpmDelta:inputs.rpmDelta/100},'저수지');}
 
 // Medical(M3) 구독자 스톡을 Y0부터 누적 — 저수지 동학
-function medStock(y){
-  const r=1-effChurn();
+function medStock(y,ctx=formulaContext(),inputs=D){
+  const D=inputs;
+  const r=1-effChurn(ctx,D);
   let stock=0;
   for(let i=0;i<=y;i++){
-    const sz=siteRev(D.sz_screen,D.sz_out,K.sz_chronic,i,D.ref_rate);
-    const bj=siteRev(D.bj_screen,D.bj_out,K.bj_chronic,i,D.ref_rate*0.215);
+    const sz=siteRev(D.sz_screen,D.sz_out,K.sz_chronic,i,D.ref_rate,ctx,D,'심천');
+    const bj=siteRev(D.bj_screen,D.bj_out,K.bj_chronic,i,D.ref_rate*0.215,ctx,D,'북경');
     const newMed=sz.medNew+bj.medNew;
-    stock=stock*r+newMed; // 전년 잔류 + 신규
+    stock=ctx.eval('stock',{stock,retention:r,newMed},'합산 Y'+(i+1));
   }
   return stock;
 }
 
-function calc(y){
-  const sz=siteRev(D.sz_screen,D.sz_out,K.sz_chronic,y,D.ref_rate);
-  const bj=siteRev(D.bj_screen,D.bj_out,K.bj_chronic,y,D.ref_rate*0.215); // 북경 Y1 연계율 낮음(엑셀 4.3/20)
+function calc(y,inputs=D,expressions=formulas,ctx=formulaContext(expressions)){
+  const D=inputs;
+  const label='합산 Y'+(y+1);
+  const f=(key,vars,suffix='')=>ctx.eval(key,vars,label+suffix);
+  const r=(start,target,name)=>ramp(start,target,y,ctx,label+' '+name);
+  const sz=siteRev(D.sz_screen,D.sz_out,K.sz_chronic,y,D.ref_rate,ctx,D,'심천');
+  const bj=siteRev(D.bj_screen,D.bj_out,K.bj_chronic,y,D.ref_rate*0.215,ctx,D,'북경'); // 북경 Y1 연계율 낮음(엑셀 4.3/20)
   // 구독매출 = Medical + Wellness. 저수지 ON이면 Medical은 스톡 누적, OFF면 연간 신규
-  const feeMed=ramp(D.fee_med,250,y), feeWell=ramp(D.fee_well,100,y);
-  const medActive=D.reservoir?medStock(y):(sz.medNew+bj.medNew);
+  const feeMed=r(D.fee_med,250,'Medical 단가'), feeWell=r(D.fee_well,100,'Wellness 단가');
+  const medActive=D.reservoir?medStock(y,ctx,D):(sz.medNew+bj.medNew);
   const wellNew=sz.wellNew+bj.wellNew;
-  const subMed=medActive*feeMed;
-  const subWell=wellNew*feeWell;
+  const subMed=f('subMed',{medActive,feeMed});
+  const subWell=f('subWell',{wellNew,feeWell});
   const sub=subMed+subWell;
   const ref=sz.refRev+bj.refRev;
   const fam=sz.famRev+bj.famRev;
@@ -304,65 +435,81 @@ function calc(y){
   // 기업병원 (Y3~, 보수계수)
   let corpRev=0,corpReach=0;
   if(D.corp){
-    corpReach=K.corpPool*K.corpPenBase[y]*D.corpPen;
+    corpReach=f('corpReach',{corpPool:K.corpPool,penetration:K.corpPenBase[y],multiplier:D.corpPen});
     const atRisk=corpReach*0.46;
-    corpRev=corpReach*0.95*0.10*ramp(D.fee_med,250,y)*0 + // 구독(간이)
-            corpReach*0.95*0.10*180 +
-            atRisk*0.20*D.visits*ramp(D.visit_cost,300,y)*(D.svc_fee/100);
+    corpRev=f('corpRev',{corpReach,atRisk,visits:D.visits,visitCost:r(D.visit_cost,300,'기업 방문단가'),svcFee:D.svc_fee/100});
   }
   const medRev=medRevBase+corpRev;
 
   // 커머스 (upside) — Y2부터 런칭 (Y1은 의료 셋업 집중)
   const commLive=(y>=1);
   // ① 의료경로: 2병원 의료구독자 × 40% (고전환, 신뢰·데이터 기반)
-  const commMed=commLive?subscribers*0.40:0;
+  const commMed=commLive?f('commMed',{subscribers}):0;
   // ② 직구매경로: 기업병원 전체인원 × 커머스 침투율 (의료와 독립, K제품은 전환 빠름)
-  const commCorp=commLive?corpReach*(D.commCorpPen/100):0;
+  const commCorp=commLive?f('commCorp',{corpReach,commCorpPen:D.commCorpPen/100}):0;
   const commBuyers=commMed+commCorp;
-  const p1=D.p1?(commBuyers*120*0.15*0.75 + commBuyers*D.coachFee*12):0;
-  const p2=D.p2?(commBuyers*200*0.20 + commBuyers*D.coachFee*12):0;
+  const p1=D.p1?f('p1',{commBuyers,coachFee:D.coachFee}):0;
+  const p2=D.p2?f('p2',{commBuyers,coachFee:D.coachFee}):0;
   const commRev=p1+p2;
 
   const rev=medRev+commRev;
 
   // 비용
-  const labor=K.labor_unit*K.staff[y];
-  const opex=rev*(D.opex_rate/100);
+  const labor=f('labor',{laborUnit:K.labor_unit,staff:K.staff[y]});
+  const opex=f('opex',{rev,opexRate:D.opex_rate/100});
   // 마케팅·CAC·간접비: Y1 높고 Y5 절반으로 체감 (성숙할수록 CAC↓)
-  const mktgRate=ramp(D.mktg,D.mktg*0.5,y)/100;
-  const mktg=rev*mktgRate;
-  const bizdev=(y<2)?D.bizdev*1000:0;
+  const mktgRate=r(D.mktg,D.mktg*0.5,'마케팅비율')/100;
+  const mktg=f('mktg',{rev,mktgRate});
+  const bizdev=(y<2)?f('bizdev',{bizdevK:D.bizdev}):0;
   const dep=K.dep[y];
-  const royalty=rev*K.royalty;
-  const om=rev*(D.omRate/100);
+  const royalty=f('royalty',{rev,royaltyRate:K.royalty});
+  const om=f('om',{rev,omRate:D.omRate/100});
   const hcCost=D.hcAttr?K.capex[y]:0;
 
-  const commonCost=labor+opex+mktg+bizdev+royalty+om+hcCost+dep;
+  const commonCost=f('commonCost',{labor,opex,mktg,bizdev,royalty,om,hcCost,dep});
   const medShare=rev>0?medRev/rev:1, commShare=rev>0?commRev/rev:0;
-  const medCost=commonCost*medShare, commCost=commonCost*commShare;
-  const medEbitda=medRev-(medCost-dep*medShare);
-  const commEbitda=commRev-(commCost-dep*commShare);
+  const medCost=f('segmentCost',{commonCost,share:medShare},' Medical'), commCost=f('segmentCost',{commonCost,share:commShare},' Commerce');
+  const medEbitda=f('segmentEbitda',{revenue:medRev,cost:medCost,dep,share:medShare},' Medical');
+  const commEbitda=f('segmentEbitda',{revenue:commRev,cost:commCost,dep,share:commShare},' Commerce');
   const totCost=medCost+commCost;
-  const totEbitda=rev-(totCost-dep);
+  const totEbitda=f('totalEbitda',{rev,totCost,dep});
   const ebit=totEbitda-dep;
-  const tax=ebit>0?ebit*K.taxRate:0;
-  const nopat=ebit-tax;
+  const tax=ebit>0?f('tax',{ebit,taxRate:K.taxRate}):0;
+  const nopat=f('nopat',{ebit,tax});
 
   return {sub,ref,fam,corpRev,corpReach,commRev,p1,p2,medRev,commRev,rev,
     medCost,commCost,totCost,medEbitda,commEbitda,totEbitda,labor,opex,mktg,bizdev,royalty,om,hcCost,dep,ebit,tax,nopat,subscribers,commBuyers,commMed,commCorp,corpReach,medActive,subMed,subWell};
 }
 
 // ═══ 렌더 ═══
-function render(){
+function render(options={}){
+  const focus=document.activeElement;
+  const focusKey=focus?.dataset?.num?['num',focus.dataset.num]:focus?.dataset?.sl?['sl',focus.dataset.sl]:null;
+  const disclosure=new Map(Array.from(document.querySelectorAll('[data-panel]')).map(e=>[e.dataset.panel,e.open]));
   document.getElementById('presets').innerHTML=Object.keys(PRESETS)
     .map(k=>`<button class="chip${D._preset===k?' on':''}" data-preset="${k}">${PRESETS[k].name}</button>`).join('');
   document.getElementById('presetDesc').textContent=D._preset?('▸ '+PRESETS[D._preset].desc):'슬라이더 수동조정 중 (프리셋 해제)';
 
-  const d=calc(yr);
-  document.getElementById('view').innerHTML=`
-    ${inputPanel()}
+  const view=document.getElementById('view');
+  if(!document.getElementById('results')){
+    view.innerHTML=`<div class="workspace"><details class="card settings-panel" data-panel="drivers" open><summary>Key Drivers · 입력 설정</summary><div id="driver-inputs"></div></details><section class="results-panel" aria-label="계산 결과"><div id="results"></div></section></div><details class="card formula-panel" data-panel="formulas"><summary>적용 함수·수식 / 수식 편집</summary>${formulaPanel()}</details>`;
+  }
+  if(options.inputs!==false)document.getElementById('driver-inputs').innerHTML=inputPanel();
+  const current=formulaContext(),d=calc(yr,D,formulas,current);
+  const errors=new Map();
+  const mergeErrors=ctx=>ctx.errors.forEach((v,k)=>errors.set(k,v));
+  mergeErrors(current);
+  const trajectory=Array.from({length:5},(_,y)=>{const ctx=formulaContext();const result=calc(y,D,formulas,ctx);mergeErrors(ctx);return result;});
+  const band=bandEbitda(yr,errors);
+  for(const m of FORMULA_META){
+    const allowed=new Set((m.expr.match(/[A-Za-z_][A-Za-z0-9_]*/g)||[]).filter(n=>!own(mathFunctions,n)));
+    try{parseFormula(formulas[m.key],allowed);}catch(e){errors.set(m.key,e.message);}
+  }
+  lastFormulaRun={current,errors};
+  document.getElementById('results').innerHTML=`
     ${yearTabs()}
-    ${totalCard(d)}
+    <div id="formula-errors" role="status">${errors.size?`수식 오류 ${errors.size}건 · 해당 항목은 기본식으로 계산했습니다.<br>${Array.from(errors,([key,message])=>escapeHtml(FORMULA_META.find(m=>m.key===key).label+': '+message)).join('<br>')}`:''}</div>
+    ${totalCard(d,band)}
     <div class="card"><div class="sub" style="margin-bottom:6px">5Y EBITDA trajectory ($) — tap bar for year</div>
       <div style="position:relative;height:200px"><canvas id="traj"></canvas></div></div>
     <div class="card"><div class="sub" style="margin-bottom:6px">Waterfall (Y${yr+1}) — Medical→Commerce→Total EBITDA</div>
@@ -374,14 +521,13 @@ function render(){
     ${(D.p1||D.p2)&&yr===0?`<div class="card" style="margin-top:-6px"><div class="faint">커머스는 Y2 런칭 — Y1은 의료 셋업 집중이라 커머스 매출 0. Y2 탭에서 확인.</div></div>`:''}
     ${d.commRev>0?`<div class="card" style="margin-top:-6px"><div class="faint">커머스 구매자 ${fmt(d.commBuyers)}명 = 의료경로 ${fmt(d.commMed)}명(구독자×40%) + 기업병원 직구매 ${fmt(d.commCorp)}명(전체 ${fmt(d.corpReach)}명×${D.commCorpPen}%). 의료는 침투 느려도 K제품 직구매는 빠른 전환 — 독립 모수. (Y2 런칭)</div></div>`:''}
   `;
-  bind();drawTraj();drawWF(d);
+  for(const e of document.querySelectorAll('[data-panel]'))if(disclosure.has(e.dataset.panel))e.open=disclosure.get(e.dataset.panel);
+  bind();bindFormulas();updateFormulaDetails();drawTraj(trajectory);drawWF(d);
+  if(focusKey&&options.inputs!==false)document.querySelector(`[data-${focusKey[0]}="${focusKey[1]}"]`)?.focus({preventScroll:true});
 }
 
 function inputPanel(){
-  return `<div class="card">
-    <div class="sub" style="margin-bottom:4px">Key Drivers (16 inputs)</div>
-    <div class="faint" style="margin-bottom:6px">숫자칸 = 직접입력 / 슬라이더 = 감. 바꾸면 즉시 재계산. %·단가는 Y1값(Y5까지 자동증가).</div>
-
+  const content=`
     <div class="seclabel">A · Patient base (2025 actuals)</div>
     ${numIn('sz_screen','Shenzhen screening')}${numIn('sz_out','Shenzhen outpatient')}
     ${numIn('bj_screen','Beijing screening')}${numIn('bj_out','Beijing outpatient')}
@@ -409,7 +555,7 @@ function inputPanel(){
 
     <div class="seclabel">M3 Reservoir Dynamics (복리)</div>
     ${togIn('reservoir','Reservoir ON (구독자 누적)',C.med)}
-    ${D.reservoir?`<div class="faint" style="padding:2px 0 6px">Effective churn <span class="mono" style="color:var(--med)">${(((D.churn0/100)*(1-(D.rpmAdopt/100)*(D.rpmDelta/100)))*100).toFixed(1)}%</span> = base ${D.churn0}% × (1 − RPM adopt ${D.rpmAdopt}% × δ ${D.rpmDelta}%)</div>
+    ${D.reservoir?`<div class="faint" style="padding:2px 0 6px">Effective churn <span class="mono" style="color:var(--med)" id="effective-churn">${(effChurn()*100).toFixed(1)}%</span></div>
     ${slIn('churn0','Base churn',10,40,1,'%','RPM 없을때',C.cost)}
     ${slIn('rpmAdopt','RPM adoption',0,80,1,'%','화웨이 등',C.med)}
     ${slIn('rpmDelta','RPM churn-cut δ',0,60,1,'%','미검증(파일럿)',C.med)}`:''}
@@ -422,7 +568,56 @@ function inputPanel(){
     ${(D.p1||D.p2)?slIn('coachFee','  JITAI coaching/mo',0,30,1,'$','반복매출',C.comm):''}
     ${(D.p1||D.p2)&&D.corp?slIn('commCorpPen','  Corp direct-buy pen',0,60,1,'%','의료와 독립(K제품↑)',C.comm):''}
     ${togIn('hcAttr','CAPEX → HC attribution',C.hc)}
-  </div>`;
+  `;
+  return content.split(/(?=<div class="seclabel">)/).filter(s=>s.trim()).map((section,index)=>{
+    const match=/<div class="seclabel">([^<]+)<\/div>/.exec(section);
+    return `<details class="input-group" data-panel="driver-${index}" open><summary>${match?match[1]:'설정'}</summary>${section.replace(/<div class="seclabel">[^<]+<\/div>/,'')}</details>`;
+  }).join('');
+}
+
+function formulaPanel(){
+  return `<div class="formula-toolbar"><button class="chip" type="button" id="restore-formulas">전체 기본식 복원</button><span class="formula-status" id="formula-status" role="status"></span></div>
+    <div class="formula-groups">${FORMULA_META.map(m=>`<section class="formula-item">
+      <div class="formula-heading"><h3><label for="formula-${m.key}">${escapeHtml(m.label)}</label></h3><button type="button" class="chip" data-restore="${m.key}">복원</button></div>
+      <div class="formula-meta"><div>함수: <code>${m.fn}() / ${m.key}</code></div><div>의미: ${escapeHtml(m.meaning)}</div><div>변수: ${escapeHtml(m.variables)}</div><div>반영: ${escapeHtml(m.impact)}</div></div>
+      <textarea id="formula-${m.key}" data-formula="${m.key}" aria-describedby="error-${m.key} trace-${m.key}" spellcheck="false" maxlength="1200">${escapeHtml(formulaDrafts[m.key])}</textarea>
+      <div class="formula-error" id="error-${m.key}"></div><div class="formula-trace" id="trace-${m.key}"></div>
+    </section>`).join('')}</div>`;
+}
+function updateFormulaDetails(){
+  const {current,errors}=lastFormulaRun;
+  const modified=FORMULA_META.filter(m=>formulas[m.key]!==m.expr).length;
+  const status=document.getElementById('formula-status');
+  status.textContent=`${errors.size?'오류 '+errors.size+'건 · 기본식 적용':'모든 계산식 정상'} · 수정 ${modified}개 · Y${yr+1}`;
+  status.style.color=errors.size?'var(--cost)':'var(--med)';
+  const churn=document.getElementById('effective-churn');if(churn)churn.textContent=(effChurn()*100).toFixed(1)+'%';
+  for(const m of FORMULA_META){
+    const error=errors.get(m.key)||'';
+    document.getElementById('error-'+m.key).textContent=error?error+' 기본식을 적용합니다.':'';
+    document.getElementById('formula-'+m.key).setAttribute('aria-invalid',String(!!error));
+    const traces=Array.from(current.traces.values()).filter(t=>t.key===m.key);
+    const target=document.getElementById('trace-'+m.key);
+    const wasOpen=target.querySelector('details')?.open;
+    target.innerHTML=traces.length?`<strong>적용 결과 (${traces.length}개 문맥)</strong><details${wasOpen?' open':''}><summary>대입값·산출값</summary>${traces.map(t=>`<p>${escapeHtml(t.label)}${t.error?' · 기본식':''}<br>${Object.entries(t.vars).map(([k,v])=>escapeHtml(k)+'='+traceNumber(v)).join(' · ')}<br><strong>→ ${traceNumber(t.value)}</strong></p>`).join('')}</details>`:'현재 연도·토글에서는 미적용';
+  }
+}
+function bindFormulas(){
+  document.querySelectorAll('[data-formula]').forEach(el=>el.oninput=()=>{
+    formulaDrafts[el.dataset.formula]=el.value;
+    formulas[el.dataset.formula]=el.value;
+    render({inputs:false});
+  });
+  document.querySelectorAll('[data-restore]').forEach(el=>el.onclick=()=>{
+    const key=el.dataset.restore;
+    formulas[key]=formulaDrafts[key]=FORMULA_DEFAULTS[key];
+    document.getElementById('formula-'+key).value=FORMULA_DEFAULTS[key];
+    render({inputs:false});
+  });
+  document.getElementById('restore-formulas').onclick=()=>{
+    formulas={...FORMULA_DEFAULTS};formulaDrafts={...formulas};
+    for(const m of FORMULA_META)document.getElementById('formula-'+m.key).value=m.expr;
+    render({inputs:false});
+  };
 }
 
 function numIn(k,label,unit=''){
@@ -434,7 +629,7 @@ function slIn(k,label,min,max,step,unit,note,c){
   return `<div style="padding:4px 0">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <span class="inlabel" style="font-size:12px">${label} <span class="faint">${note}</span></span>
-      <span class="mono" style="color:${c};font-size:12px">${step<1?v.toFixed(1):v}${unit}</span>
+      <span class="mono" data-slider-value="${k}" data-step="${step}" data-unit="${unit}" style="color:${c};font-size:12px">${step<1?v.toFixed(1):v}${unit}</span>
     </div>
     <input type="range" min="${min}" max="${max}" step="${step}" value="${v}" data-sl="${k}" style="--acc:${c}">
   </div>`;
@@ -449,18 +644,16 @@ function yearTabs(){
 }
 
 // 3-tier 밴드: 현재 입력 기준 보수~공격 EBITDA 범위 (v3.3 이식)
-function bandEbitda(y){
-  const save=JSON.stringify(D);
-  const lo=Object.assign({},PRESETS.kpmg.set), hi=Object.assign({},PRESETS.aggr.set);
-  Object.assign(D,lo); const dLo=calc(y).totEbitda;
-  Object.assign(D,JSON.parse(save)); Object.assign(D,hi); const dHi=calc(y).totEbitda;
-  Object.assign(D,JSON.parse(save));
+function bandEbitda(y,errors=new Map()){
+  const loContext=formulaContext(),hiContext=formulaContext();
+  const dLo=calc(y,{...D,...PRESETS.kpmg.set},formulas,loContext).totEbitda;
+  const dHi=calc(y,{...D,...PRESETS.aggr.set},formulas,hiContext).totEbitda;
+  for(const ctx of [loContext,hiContext])ctx.errors.forEach((value,key)=>errors.set(key,value));
   return {lo:dLo,hi:dHi};
 }
 
-function totalCard(d){
+function totalCard(d,band=bandEbitda(yr)){
   const m=d.rev>0?d.totEbitda/d.rev*100:0;
-  const band=bandEbitda(yr);
   return `<div class="card" style="border-color:var(--total)">
     <div class="sub" style="color:var(--total)">■ Total (Y${yr+1})</div>
     <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px">
@@ -487,9 +680,9 @@ function blockCard(title,c,rev,cost,ebitda,rows){
 }
 
 let tchart=null,wfchart=null;
-function drawTraj(){
+function drawTraj(trajectory=Array.from({length:5},(_,y)=>calc(y))){
   const med=[],comm=[],tot=[],labels=[];
-  for(let y=0;y<5;y++){const dd=calc(y);med.push(Math.round(dd.medEbitda));comm.push(Math.round(dd.commEbitda));tot.push(Math.round(dd.totEbitda));labels.push('Y'+(y+1));}
+  for(let y=0;y<5;y++){const dd=trajectory[y];med.push(Math.round(dd.medEbitda));comm.push(Math.round(dd.commEbitda));tot.push(Math.round(dd.totEbitda));labels.push('Y'+(y+1));}
   const ctx=document.getElementById('traj');if(!ctx)return;
   if(tchart)tchart.destroy();
   tchart=new Chart(ctx,{type:'bar',
@@ -527,8 +720,13 @@ function drawWF(d){
 function bind(){
   document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>applyPreset(b.dataset.preset));
   document.querySelectorAll('[data-y]').forEach(b=>b.onclick=()=>{yr=+b.dataset.y;render()});
-  document.querySelectorAll('[data-num]').forEach(i=>i.onchange=()=>{D[i.dataset.num]=+i.value||0;D._preset=null;render()});
-  document.querySelectorAll('[data-sl]').forEach(s=>s.oninput=()=>{D[s.dataset.sl]=+s.value;D._preset=null;render()});
+  document.querySelectorAll('[data-num]').forEach(i=>i.onchange=()=>{D[i.dataset.num]=+i.value||0;D._preset=null;render({inputs:false})});
+  document.querySelectorAll('[data-sl]').forEach(s=>s.oninput=()=>{
+    D[s.dataset.sl]=+s.value;D._preset=null;
+    const value=document.querySelector(`[data-slider-value="${s.dataset.sl}"]`);
+    value.textContent=(+value.dataset.step<1?(+s.value).toFixed(1):s.value)+value.dataset.unit;
+    render({inputs:false});
+  });
   document.querySelectorAll('[data-tog]').forEach(b=>{
     const act=()=>{D[b.dataset.tog]=!D[b.dataset.tog];D._preset=null;render()};
     b.onclick=act;b.onkeydown=e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();act()}};
