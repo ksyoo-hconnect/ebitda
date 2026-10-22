@@ -1,0 +1,540 @@
+<!doctype html><html><head><!-- frame-runtime --><script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=eaJCyKmBpBi4oB8JXPR4lpArOHH5rqnfQlIohGFn34GGkM4sUshfukSedaRwo4DK6W5Pnxuo0oCcdMXTuK6Iu2Zx-pOoBGHHAbehtQkzpH-BMliYZrUPcrL2dwWJ7yhC1B6JrlGxPeLO9qL6jDP3KbM3qNAlfQ5Qx9k1I-uD1Z4RnWIyPh7bF-AeaWepadJMFy7DCmsRHvRPd1YsW2A_Xw" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="https://gc.kis.v2.scr.kaspersky-labs.com/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly8yYmZiMjI2NC1mMDY3LTRlYzQtODQ5NC1jZjgzN2E5ZWE5OTEuZnJhbWUuY2xhdWRldXNlcmNvbnRlbnQuY29tL19mLzE3OTI2NzUwODYtMzlhNC8_X19mcmFtZV92PW1hbmlmZXN0LmNkYWRkNjMxZDEwMzlhYmIuanNvbg"/><script>window.__FRAME_PREAMBLE={"v":1,"capabilities":{"artifact":"artifact.BBvTDtAn.js","assets":"assets.DOAjpBS9.js","comments":"comments.BjISm5Q7.js","db":"db.zFlAA4qL.js","dictation":"dictation.f3j7VXQ8.js","downloads":"downloads.axDW2QAi.js","embed":"embed.SWCZLzn6.js","endpoints":"endpoints.BPfoKaE1.js","files":"files.IkpCjcgM.js","mcp":"mcp.kl0G36TA.js","network":"network.B5UA9Su4.js","paste":"paste.DeKNLIxx.js","permissions":"permissions.6yWoDecA.js","reads":"reads.Bgov9hIw.js","room":"room.BYRHiLCc.js","sample":"sample.D0G8eGrV.js","self":"artifact.BBvTDtAn.js","tts":"tts.iS74i_mi.js","user":"user.uKicftX-.js"},"transforms":"_transforms.CRcnZuGX.js","comments":"_comments.AKhddNYY.js","translate":"_translate.DqxC5ek1.js","ldx":"_ldx.B4FSryPi.js"}                                                                                                                                                                                                                                                                                                                                                                                 </script><script>(function(){"use strict";function dr(t){return t==="cookie"||t==="query"?t:void 0}function hr(t){return typeof t=="number"&&Number.isSafeInteger(t)&&t>0?t:void 0}var to=3e5;function pr(t,e){try{const r=t("navigation")[0],n=[r.responseStart,r.redirectEnd-r.redirectStart,r.domContentLoadedEventStart,e(),r.connectEnd-r.domainLookupStart,r.responseStart-r.requestStart];r.requestStart>0||(n.length=4);for(let a=0;a<n.length;a++)if(n[a]>=0&&n[a]<=3e5)n[a]=n[a]|0;else{if(a<4)return;n.length=4}return n}catch{return}}var mr=["light","dark","system"],vr=/^[A-Za-z0-9_-]{1,64}$/,Mt=/^[a-zA-Z_:][a-zA-Z0-9_:.-]{0,127}$/,_r=new Set(["class","hidden","value","checked","style","title","alt","placeholder","lang","dir","role","tabindex","disabled","readonly","contenteditable","open","colspan","rowspan"]);function yr(t){const e=t.toLowerCase();return e.startsWith("data-")||e.startsWith("aria-")||_r.has(e)}var Pt="data-ldx-props";function gr(t,e){if(e.toLowerCase()===Pt)return!0;const r=t.getAttribute(Pt);if(r===null)return!1;try{const n=JSON.parse(r);if(n===null||typeof n!="object"||Array.isArray(n))return!0;const a=e.toLowerCase();return Object.keys(n).some(s=>s.toLowerCase()===a)}catch{return!0}}var ro="http://www.w3.org/1999/xhtml",wr="http://www.w3.org/2000/svg",br=new Set(["script","style","iframe","noscript","noframes","noembed","xmp","plaintext","template","title","textarea","object","embed"]),Er=new Set(["script","style"]);function Sr(t){const e=t.localName.toLowerCase();return t.namespaceURI==="http://www.w3.org/1999/xhtml"?!br.has(e):t.namespaceURI===wr?!Er.has(e):!1}function ot(t,e){return t===e||(t===160||t===32)&&(e===160||e===32)}function kr(t,e){const r=t.length,n=e.length;let a=0;for(;a<r&&a<n&&ot(t.charCodeAt(a),e.charCodeAt(a));)a++;let s=0;for(;s<r-a&&s<n-a&&ot(t.charCodeAt(r-1-s),e.charCodeAt(n-1-s));)s++;return{p:a,s}}function Ar(t,e){const r=t.firstChild;if(t.childNodes.length!==1||r===null||r.nodeType!==Node.TEXT_NODE){t.textContent=e;return}const n=r.data,a=n.length,s=e.length,{p:l,s:u}=kr(n,e);l===a&&u===0&&a===s||r.replaceData(l,a-l-u,e.slice(l,s-u));const R=r.data,b=t.ownerDocument.getSelection?.()??null,y=b!==null&&b.rangeCount>0&&(b.anchorNode===r||b.focusNode===r)?{anchor:b.anchorNode,anchorOffset:b.anchorOffset,focus:b.focusNode,focusOffset:b.focusOffset}:null;let p=-1,k=-1;for(let m=0;m<R.length&&m<e.length;m++){const j=R.charCodeAt(m),A=e.charCodeAt(m);j!==A&&ot(j,A)&&(p<0&&(p=m),k=m)}const L=p>=0;if(L&&r.replaceData(p,k-p+1,e.slice(p,k+1)),L&&y!==null&&y.anchor!==null&&y.focus!==null)try{b.setBaseAndExtent(y.anchor,y.anchorOffset,y.focus,y.focusOffset)}catch{}}var Rr=new Set(["html","head","body","frameset"]);function Tr(t){return t.namespaceURI==="http://www.w3.org/1999/xhtml"&&Rr.has(t.localName)}function Lr(t){if(t===null||typeof t!="object")return!1;const e=t;if(typeof e.target!="string"||!vr.test(e.target)||e.text!==void 0&&typeof e.text!="string")return!1;if(e.attrsSet!==void 0){if(e.attrsSet===null||typeof e.attrsSet!="object")return!1;for(const[r,n]of Object.entries(e.attrsSet))if(!Mt.test(r)||typeof n!="string")return!1}if(e.attrsRemoved!==void 0){if(!Array.isArray(e.attrsRemoved))return!1;for(const r of e.attrsRemoved)if(typeof r!="string"||!Mt.test(r))return!1}return!0}function Or(t,e){if(t===null||typeof t!="object")return!1;const{seq:r,elements:n}=t;if(typeof r!="number"||!Number.isSafeInteger(r)||!Array.isArray(n)||n.length===0||n.length>64)return!1;for(let a=0;a<n.length;a++)if(!e(n[a]))return!1;return!0}function Mr(t){return t===null||typeof t!="object"?!1:Or(t.__frame_patch,Lr)}function Pr(t){if(t===null||typeof t!="object")return!1;const e=t.__frame_init;return e!==null&&typeof e=="object"}function Nr(t){return t!==null&&typeof t=="object"&&t.__frame_size_poke===!0}function Cr(t){if(t===null||typeof t!="object")return!1;const e=t.__frame_host_visible;return e!==null&&typeof e=="object"&&typeof e.visible=="boolean"}function Fr(t){if(t===null||typeof t!="object")return!1;const e=t.__frame_theme;if(e===null||typeof e!="object")return!1;const r=e.theme;return typeof r=="string"&&mr.includes(r)}var xr=["ok","empty","snapshot_error","snapshot_timeout","unclonable","oversize","unavailable","restore_error","withheld"],jr=["TypeError","RangeError","ReferenceError","SyntaxError","DataCloneError","QuotaExceededError","AbortError","TimeoutError","SecurityError","Error","other"];function Ir(t){return typeof t=="string"&&jr.includes(t)?t:"other"}var Dr=Object.freeze({until:null,now:!1}),Hr="__claude_hot",Br="__claude_hot_in",qr=/^__claude_hot(?:_in)?(?::|$)/,Nt=/^[0-9a-z]{1,32}$/,at=t=>t===void 0?Hr:"__claude_hot:"+t,Oe=t=>t===void 0?Br:"__claude_hot_in:"+t;function Ur(t,e){const r=[];for(let n=0;n<t.length;n++){const a=t.key(n);a!==null&&a!==e&&qr.test(a)&&r.push(a)}for(const n of r)t.removeItem(n)}function Kr(t){let e=null;try{e=U(JSON.parse(t)?.hot)}catch{return null}return e===null||typeof e.k!="string"||!Nt.test(e.k)?null:he(e.g)?{k:e.k,g:e.g}:{k:e.k}}var no=262144,Gr=3e3,$r=5e3,Ct=/^[a-z0-9._:-]{1,64}$/,zr=["none","hot-restart","hard-reload"],Wr=["asset","doc","added","removed"],Vr=1500,Xr=/^[0-9a-f]{64}$/;function U(t){return t!==null&&typeof t=="object"?t:null}function he(t){return typeof t=="number"&&Number.isInteger(t)&&t>=0&&t<2**31}function Ft(t){return t===void 0||typeof t=="number"&&Number.isFinite(t)}function Yr(t){return t===void 0||typeof t=="string"&&Ct.test(t)}function xt(t){const e=U(t);return e!==null&&(e.until===null||typeof e.until=="number"&&Number.isFinite(e.until))&&typeof e.now=="boolean"}function st(t){const e=U(t);return e!==null&&typeof e.ver=="string"&&e.ver.length<=128&&Ft(e.seq)&&typeof e.handoff=="string"&&xr.includes(e.handoff)&&Yr(e.note)}function jt(t){const e=U(t);return e!==null&&he(e.gen)&&(e.phase==="final"||e.phase==="pending")&&(e.from===null||st(e.from))}function Jr(t){const e=U(t);return e!==null&&e.kv===1&&he(e.gen)&&st(e.from)&&Object.hasOwn(e,"data")}function Zr(t){const e=U(t);return e!==null&&e.__frame_hot_snapshot===!0&&he(e.gen)&&typeof e.timeoutMs=="number"&&e.timeoutMs>=0&&e.timeoutMs<=6e4&&(e.handoff===void 0||typeof e.handoff=="boolean")&&(e.deadline===void 0||xt(e.deadline))&&Ft(e.seq)&&(e.note===void 0||typeof e.note=="string")&&(e.key===void 0||typeof e.key=="string")}function Qr(t){const e=U(t);return e!==null&&e.__frame_hot_start===!0&&he(e.gen)&&st(e.from)}function en(t){return typeof t=="string"&&t.length>=1&&t.length<=128}function It(t){return U(t)!==null&&!Array.isArray(t)}function tn(t){const e=U(t);return e!==null&&e.__frame_cap_grant===!0&&typeof e.cap=="string"&&en(e.ver)&&(e.grant===void 0||It(e.grant))&&(e.budgets===void 0||It(e.budgets)&&Object.values(e.budgets).every(Number.isFinite))&&(e.brokerGen===void 0||he(e.brokerGen))}function rn(t){const e=U(t);return e!==null&&e.__frame_cap_rewired===!0&&(e.caps===void 0||Array.isArray(e.caps)&&e.caps.every(r=>typeof r=="string"))&&(e.brokerGen===void 0||he(e.brokerGen))}function Ge(t){const e=U(t);return e!==null&&typeof e.ver=="string"&&e.ver.length<=128&&Number.isFinite(e.seq)}function Dt(t){if(t==null||typeof t=="string")return!0;const e=U(t);return e!==null&&typeof e.doc=="string"&&typeof e.profile=="string"}function nn(t){const e=U(t);return e!==null&&typeof e.path=="string"&&Wr.includes(e.kind)&&Dt(e.from)&&Dt(e.to)}function on(t){return t===null?null:Object.freeze(t.filter(nn))}function an(t){const e=U(t);return e!==null&&e.__frame_hot_update===!0&&Number.isFinite(e.id)&&Ge(e.from)&&Ge(e.to)&&(e.changed===null||Array.isArray(e.changed))&&zr.includes(e.required)&&xt(e.deadline)&&typeof e.verdictTimeoutMs=="number"&&e.verdictTimeoutMs>=0&&e.verdictTimeoutMs<=6e4&&(e.preflight===void 0||typeof e.preflight=="string"&&Xr.test(e.preflight))}function sn(t){const e=U(t);return e!==null&&e.__frame_hot_readdress===!0&&Ge(e.from)&&Ge(e.to)}var pe=/^[\w.-]+\.js$/;function ln(t,e,r){return r?"inert":typeof e=="string"&&pe.test(e)?t?[e]:"inert":t?"inert":"framed"}var Ht=Object.freeze({[Symbol("claude.hot.restart")]:!0});function Bt(t,e){let r;try{r=t??sessionStorage}catch{return null}const n=at(e?.k),a=Oe(e?.k);let s=null;try{s=r.getItem(n)}catch{}try{r.removeItem(n)}catch{}try{Ur(r,a)}catch{}let l=null;if(s!==null&&!(e!==null&&e.g===void 0))try{const u=JSON.parse(s);Jr(u)&&(e===null||u.gen===e.g)&&(l=u)}catch{}if(l===null)try{r.removeItem(a)}catch{}return l}function qt(){const t=/^\/_f\/([^/]{1,128})\//.exec(location.pathname);return t?t[1]:""}var cn=/^[^/\\?#]{1,128}$/,it=t=>cn.test(t)&&t!=="."&&t!=="..";function Ut(t,e,r){const n=new URL(t),a="/_f/"+e+"/";if(!e||!n.pathname.startsWith(a)||!it(r))return null;const s=n.search.slice(1).split("&").filter(l=>!/^__frame_t(?:=|$)/.test(l)).join("&");return n.origin+"/_f/"+r+"/"+n.pathname.slice(a.length)+(s?"?"+s:"")+n.hash}var $e="{}";function Me(t){if(!t)return null;const e={ver:t.ver,handoff:t.handoff};return t.seq!==void 0&&(e.seq=t.seq),t.note!==void 0&&(e.note=t.note),e}function Kt(t,e){return t!==null&&t.note===void 0&&e?.note!==void 0?{...t,note:e.note}:t}function Gt(t){const e=t?.k;return e!==null&&typeof e=="object"?e:void 0}function un(t,e,r,n=null){const a=setTimeout,s=clearTimeout,l=queueMicrotask,u=performance.now.bind(performance),R=new TextEncoder;let b=null,y=null;try{b=history,y=b.replaceState.bind(b)}catch{}const p=(...o)=>{try{console.warn(...o)}catch{}};let k=qt(),L=null;try{L=sessionStorage}catch{}const m={storage:L,fetch:typeof fetch=="function"?fetch.bind(globalThis):null,entry:location.origin+location.pathname+location.search,ver:k,priors:[],key:n?.k};let j=n?.k;const A=typeof requestAnimationFrame=="function"?requestAnimationFrame:o=>a(()=>o(u()),16);let _=e?.data??{},E=Me(e?.from),I=e?.gen??0,D=e!==null,q=!1,$=!1,H=null,xe=!1;const be=new AbortController;let je=null,K=null,Ee=null,Ie=!1,le=()=>{};const te=new Promise(o=>{le=o});let ve=!1,Je=!1,Se=!1,c,h=null,g=!1,C=!1,O=!1,z=!1,B=!1,J=!1;const ce=o=>{for(const f of[at(o),Oe(o)])try{L?.removeItem(f)}catch{}},G=(o,f)=>{try{f!==null&&r.post(o,f)}catch{}},_e=()=>B||=O&&(K===null||z),Q=()=>{const o={__frame_hot:!0,ready:K!==null,accept:Ee!==null,demand:!0};J=!B,J&&(o.booting=!0),ve&&(o.readData=!0),Se&&(o.threw=!0),h?.assess&&(o.preflight=!0),G(o,H)};let De=!1,He=!1,ue=!1,re=!1;const Be=()=>{De||!xe||ue||(De=!0,G({__frame_reveal_hold:!0},"*"))},ke=()=>new Promise(o=>{let f,d=0;const v=P=>{if(f===void 0)f=P;else if(P!==f||++d>=8){o();return}try{A(v)}catch{o()}};try{A(v)}catch{o()}}),Ze=()=>{ue=!0,G({__frame_reveal_ready:!0},"*")},ye=o=>{He||(He=!0,o.then(f=>{if(f===!1)return;let d=null;try{d=h?.settle?.()??null}catch{}return(d===null?ke():new Promise(v=>{a(v,50),Promise.resolve(d).then(v,v)}).then(ke)).then(Ze)}))},Qe=()=>{if(re||!ue)return;re=!0;const o=()=>{try{h?.afterReveal?.()}catch{}};o(),ke().then(()=>{o(),Ze()})},ge=(o=!1)=>{if(Ie||K===null||!D||!$)return;Ie=!0;const f=K,d=_;l(()=>{let v;try{v=f(d)}catch(N){throw le(!1),N}let P=!1;try{P=typeof v?.then=="function"}catch{}if(!P){le(!0);return}Promise.resolve(v).then(()=>le(!0),N=>{le(!1),l(()=>{throw N})})}),ye(o?te:r.dcl.then(()=>te))},Ae=o=>typeof o=="string"&&Ct.test(o)?o:void 0,qe=o=>{const f={__frame_hot_restart:!0},d=Ae(o?.note);d!==void 0&&(f.note=d),o?.required==="hard-reload"&&(f.required="hard-reload"),G(f,H)},fe=Object.freeze({get data(){return $||(Je=!0),!D&&!ve&&(ve=!0,$&&Q()),_},get from(){return E},get gen(){return I},signal:be.signal,snapshot(o){typeof o=="function"&&(je=o)},ready(o){typeof o!="function"||K!==null||(K=o,Be(),Q(),q&&G({__frame_hot_ready:!0,gen:I},H),ge())},accept(o){typeof o=="function"&&(Ee=o,Q())},restart(o){const f={note:o?.note,required:o?.required};if($){qe(f);return}const d=c;c={note:Ae(d?.note)??f.note,required:d?.required==="hard-reload"||f.required==="hard-reload"?"hard-reload":void 0}}});let de=null,Ue=()=>{};const et=new Promise(o=>{Ue=o});let i=null;const S=()=>i??=r.dcl.then(()=>{let o=!1;try{o=de!==null&&de.expect()}catch{}if(!o)return;const f=de.maxMs;return new Promise(d=>{et.then(d),a(d,f)})}),w=()=>{if(!g||C||h===null)return;C=!0;const o=h;S().then(()=>{try{ue||o.afterStart(Gt(e),!1)}catch{}})},M=o=>{e!==null&&Je&&(ve=!0),_={},E=null,I=0;try{L?.removeItem(Oe(n?.k))}catch{}e!==null&&!o&&ye(r.dcl.then(()=>K!==null?te:void 0))},ee=()=>{g=!0,ye(S().then(()=>K!==null?te:void 0)),w()};try{addEventListener("error",()=>{Se||K!==null||(Se=!0,Q())})}catch{}const Z=()=>{a(()=>{!B&&_e()&&J&&Q()},0)};try{O=document.readyState==="complete",O||addEventListener("load",()=>{O=!0,Z()},{once:!0})}catch{O=!0}_e(),te.then(()=>{z=!0,Z()});let W=-1,Et,St,Ke=!0,kt=!1,At,tt=null;const Rt=o=>{const f=tt===null;tt=Ke&&o[0]!=="withheld"?o:["withheld",o[1],$e];let d=o[0];if(Ke&&d!=="withheld"){const P={ver:k,handoff:d};Et!==void 0&&(P.seq=Et),St!==void 0&&(P.note=St);try{if(L===null)throw new Error("no storage");L.setItem(at(j),'{"kv":1,"gen":'+W+',"from":'+JSON.stringify(P)+(At!==void 0?',"k":'+JSON.stringify(At):"")+',"data":'+(d==="ok"?o[2]:$e)+"}")}catch{d="unavailable"}}else{d="withheld",ce(j);try{h?.release?.()}catch{}}const v={__frame_hot_snapshotted:!0,gen:W,handoff:d,bytes:o[1]};o[3]!==void 0&&(v.errName=o[3]),G(v,H),f&&(d==="snapshot_error"||d==="unclonable"||d==="oversize")&&p("claude.hot: snapshot",d,o[3])},Re=o=>{try{return Ir(o?.name)}catch{return"other"}},Te=(o,f,d=0)=>Rt(f===void 0?[o,d,$e]:[o,d,$e,Re(f)]),zn=o=>{if(o.gen<=W)return;const f=W>=0;if(W=o.gen,Et=o.seq,St=Ae(o.note),typeof o.key=="string"&&Nt.test(o.key)&&o.key!==j&&(ce(j),j=o.key),Ke&&=o.handoff!==!1,f){tt!==null?Rt(tt):kt&&G({__frame_hot_held:!0,gen:W},H);return}be.abort();const d=Object.freeze({handoff:Ke,timeoutMs:o.timeoutMs,deadline:o.deadline??Dr}),v=je,P=()=>{if(Ke)try{At=h?.capture()}catch{}if(v===null){Te("empty");return}let T=!1;const V=a(()=>{T||(T=!0,Te("snapshot_timeout"))},Math.max(0,d.timeoutMs));Promise.resolve().then(()=>v(d)).then(Le=>{if(T)return;T=!0,s(V);let ne;try{ne=JSON.stringify(Le)}catch(Tt){Te("unclonable",Tt);return}if(typeof ne!="string"){Te("unclonable");return}let oe=ne.length;try{oe=R.encode(ne).length}catch{}if(oe>262144){Te("oversize",void 0,oe);return}Rt(["ok",oe,ne])},Le=>{T||(T=!0,s(V),Te("snapshot_error",Le))})};let N=null;try{N=h?.holdForIme()??null}catch{}if(N===null)P();else{kt=!0,G({__frame_hot_held:!0,gen:W},H);const T=()=>{kt=!1,P()};N.then(T,T)}},Wn=o=>{if(!q||D||K===null||o.gen!==I)return;let f=null;try{f=Bt(L,n&&{k:n.k,g:o.gen})}catch{}if(f!==null&&f.gen!==o.gen){f=null;try{L?.removeItem(Oe(n?.k))}catch{}}_=f?.data??{},E=Kt(Me(f?.from??o.from),Me(o.from)),f!==null&&(I=f.gen),D=!0,q=!1;const d=Gt(f);te.then(v=>{try{v&&h?.afterStart(d,!0)}catch{}}),ge(!0)},lr=o=>{const f=k,d=m.entry;let v="",P,N=null;try{if(v=location.href,P=b.state,N=Ut(v,f,o),N!==null)if(y(P,"",N),location.pathname.startsWith("/_f/"+o+"/"))N=location.href;else return{failed:"navigate event canceled"}}catch(T){return{failed:Re(T)}}k=m.ver=o,m.priors.push(f)>8&&m.priors.splice(1,1);try{m.entry=Ut(d,f,o)??d}catch{}return[N,f,d,v,P]},Vn=({from:o,to:f})=>{let d,v;if(!it(f.ver))d="adopt_failed",v="not a version path segment";else if(f.ver===k)d="adopted";else if(!k||o.ver!==k)d="stale";else{const N=lr(f.ver);"failed"in N?(d="adopt_failed",v=N.failed):d=N[0]===null?"adopt_skipped":"adopted"}v!==void 0&&p(`claude.hot: could not move this page's URL to its new version folder /_f/${f.ver}/ (${v})`);const P={__frame_hot_readdressed:!0,to:f.ver,at:k,outcome:d};G(P,H)};let rt=0;const Xn=o=>{const f=Ee;if(f===null||o.id<=rt)return;rt=o.id;const d=h?.assess;if(o.preflight===void 0||d===void 0){cr(o,f);return}let v=!1;const P=V=>{v||(v=!0,s(T),o.id===rt&&cr(o,f,V))},N=()=>P(d.timeout(o)),T=a(N,Vr+100);d.run(o,window).then(P,N)},cr=(o,f,d)=>{let v,P=!1,N=!1,T,V,Le=null;const ne=F=>{if(N)return!1;if(T!==void 0&&T!==F)return p(`claude.hot: u.${F}() ignored - u.${T}() was called first`),!1;const ae=T===void 0;return T=F,ae},oe=F=>{T="restart",p(`claude.hot: ${F} - restarting`)},Tt=()=>{if(!ne("adopt")||o.id!==rt)return;const F=o.to.ver;if(nt.required!=="none"){oe(`u.adopt() needs required 'none', it is '${nt.required}'`);return}if(!it(F)){oe("u.adopt() cannot address this version");return}if(!k||F===k)return;const ae=lr(F);if("failed"in ae){V="adopt_failed",oe(`adopt_failed ${ae.failed}; URL not changed`);return}const[Y,Ot,Zn,fr,Qn]=ae;Y===null?(V="adopt_skipped",p(`claude.hot: adopt_skipped - page already left /_f/${Ot}/; URL not changed, update still applied`)):V="adopted",Le=()=>{if(k===F){if(Y!==null)try{if(location.href!==Y)p("claude.hot: adopt_revert_skipped - update not applied; URL left where the page navigated");else{if(y(Qn,"",fr),location.href!==fr){p("claude.hot: adopt_revert_failed navigate event canceled - URL still at the new version");return}V="adopt_reverted",p("claude.hot: adopt_reverted - adopt() was called but the handler threw; URL restored")}}catch(eo){p(`claude.hot: adopt_revert_failed ${Re(eo)} - URL still at the new version`);return}k=m.ver=Ot,m.entry=Zn,m.priors[m.priors.length-1]===Ot&&m.priors.pop(),Y===null&&(V=void 0)}}},nt=Object.freeze({from:{ver:o.from.ver,seq:o.from.seq},to:{ver:o.to.ver,seq:o.to.seq},changed:on(o.changed),required:o.required,deadline:o.deadline,adopt:Tt,defer(){return ne("defer")&&nt.deadline.now&&oe("u.defer() past the deadline"),Ht},restart(F){return ne("restart"),T==="restart"&&!N&&(v??=Ae(F?.note),P||=F?.required==="hard-reload"),Ht},...d?.update}),Yn=(F,ae)=>{N=!0,F==="threw"?(Le?.(),v??=Re(ae).toLowerCase()):T===void 0&&p(F==="timeout"?"claude.hot: accept handler did not answer in time - restarting":"claude.hot: accept handler settled without defer/restart/adopt - restarting");const Y={__frame_hot_verdict:!0,id:o.id};Y.verdict=F==="threw"||T===void 0||T==="restart"?"restart":T==="adopt"?"applied":"deferred",Y.verdict==="restart"&&(P&&(Y.required="hard-reload"),v!==void 0&&(Y.note=v)),V!==void 0&&(Y.verdict==="applied"||V!=="adopted")&&(Y.adopt=V),G(Object.assign(Y,d?.verdict),H)};let ur=!1;const Lt=(F,ae)=>ur?!1:(ur=!0,s(Jn),Yn(F,ae),!0),Jn=a(()=>Lt("timeout"),o.verdictTimeoutMs);Promise.resolve().then(()=>f(nt)).then(()=>Lt("settled"),F=>{!Lt("threw",F)&&T==="adopt"&&qe({note:Re(F).toLowerCase()}),p("claude.hot: accept",Re(F))})};try{t.hot===void 0&&Object.defineProperty(t,"hot",{value:fe,writable:!1,configurable:!1,enumerable:!1})}catch{}return{hot:fe,boot:m,afterConnect(){xe=!0,(e!==null||K!==null)&&Be()},onInit(o,f){H=f,$=!0;const d=jt(o)?o:null;d?.phase==="final"&&e!==null&&e.gen===d.gen?(D=!0,E=Kt(E,Me(d.from)),ee()):(q=d?.phase==="pending",M(q),D=!q,I=d?.gen??0,E=Me(d?.from)),Q(),J&&a(()=>{B||(B=!0,Q())},$r),q&&K!==null&&G({__frame_hot_ready:!0,gen:I},f),c!==void 0&&(qe(c),c=void 0),ge()},onNoInit(){$=!0,M(!1),D=!0,ge()},onShell(o){return o?.__frame_revealed===!0?(Qe(),!1):Zr(o)?(zn(o),!0):Qr(o)?(Wn(o),!0):an(o)?(Xn(o),!0):sn(o)?(Vn(o),!0):!1},attachExtras(o){h=o,w(),o.assess&&Q()},inSlot:()=>Oe(j),hydration(o,f){de??={expect:o,maxMs:f}},hydrated(){Ue()},carried(){return D?_:{}},presented:()=>ue}}var oo="frame_ldx_runtime",fn="frame_ldx_build",ao="script#an-form",dn=256;function lt(t,e,r){for(const n of t)r(n)&&t.delete(n);t.size>=dn&&!t.has(e)&&t.delete(t.values().next().value),t.add(e)}function Pe(t,e,r,n){try{const a=t[e];if(typeof a!="function")return;t[e]=function(...s){if(n){let u;try{u=n(this)}catch{}if(u!==void 0)return u}const l=a.apply(this,s);try{r?.(this)}catch{}return l}}catch{}}var hn=()=>{},ct;function pn(){if(ct)return ct;const t={media:new Set,contexts:new Set,wakeLocks:new Set,gate:null,refuse:null,onStart:null,onStop:null};ct=t;const e=l=>t.gate?.(l),r=l=>{t.onStop?.(l)},n=window.HTMLMediaElement?.prototype;n&&(Pe(n,"play",l=>{lt(t.media,l,u=>u.paused),t.onStart?.(l)},e),Pe(n,"pause",r));const a=window.AudioContext,s=window.AudioNode?.prototype;a&&s&&(Pe(s,"connect",l=>{const u=l.context;u instanceof a&&(lt(t.contexts,u,R=>R.state==="closed"),t.onStart?.(u))}),Pe(a.prototype,"resume",void 0,e),Pe(a.prototype,"suspend",r));try{const l=window.WakeLock?.prototype,u=l?.request;l&&typeof u=="function"&&(l.request=function(...R){if(t.refuse)return t.refuse();const b=u.apply(this,R);return Promise.resolve(b).then(y=>{lt(t.wakeLocks,y,p=>p.released),t.onStart?.(y)},hn),b})}catch{}return t}function mn(t){let e=window;for(let r=0;e.parent&&e.parent!==e&&r<8;r++)if(e=e.parent,t(e))return!0;return!1}function vn(){let t=null;const e=()=>t??parent,r=n=>t?n===t:mn(a=>a===n);return{post(n,a){if(t){e().postMessage(n,a);return}let s=parent;for(let l=0;l<8&&(s.postMessage(n,a),!(!s.parent||s.parent===s));l++)s=s.parent},on(n){const a=s=>{const l=s.source;r(l)&&n(s.data,s.origin,s.isTrusted,()=>{t??=l})};return addEventListener("message",a),()=>removeEventListener("message",a)},port:n=>({post(a,s){if(s?.activation){e().postMessage(a,{targetOrigin:n,includeUserActivation:!0});return}if(s?.transfer){e().postMessage(a,n,s.transfer);return}e().postMessage(a,n)},on(a,s){const l=u=>{r(u.source)&&u.origin===n&&a(u.data,u)};return addEventListener("message",l,s),()=>removeEventListener("message",l,s)}})}}function _n(){const t={post:()=>{},on:()=>()=>{}};return{...t,port:()=>t}}var yn=500,gn=2e4,wn="data-token-reads",bn="data-frame-refused-watch",En="data-frame-unsupported",Sn=/(?:^|\s)stylesheet(?:\s|$)/i;function kn(t,e){let r="";if(t instanceof HTMLScriptElement?r=t.src:t instanceof HTMLLinkElement&&Sn.test(t.rel)&&(r=t.href),!r)return null;try{const n=new URL(r);return n.origin===location.origin&&n.pathname.startsWith(e)?n.origin+n.pathname:null}catch{return null}}function An(t,e,r){if(!t||e!=="query")return;const n="/_f/"+t+"/";document.documentElement.setAttribute(bn,"");const a=location.href,s=fetch,l=setTimeout,u={method:"HEAD",cache:"no-store",credentials:"same-origin"},R=m=>m.ok||m.status===304;let b=!1,y=!1;const p=()=>removeEventListener("error",L,!0),k=async m=>{const j=await s(m,u);if(R(j))y=!0;else if(j.status===403){const A=await s(a,u);if(R(A)){const _=(await s(m,u)).status;_===403?(y=!0,document.documentElement.setAttribute(En,""),r()):_<500&&(y=!0)}else A.status>=400&&A.status<500&&(y=!0)}},L=m=>{if(y||b)return;if(document.documentElement.hasAttribute(wn)){y=!0,p();return}const j=kn(m.target,n);j&&(b=!0,l(()=>{k(j).catch(()=>{}).finally(()=>{b=!1,y&&p()})},yn))};addEventListener("error",L,!0),addEventListener("load",p,{once:!0}),l(p,gn)}var ut="__frame_scroll",Rn=150,Tn=310,Ln=160,On=3e4,$t="p,h1,h2,h3,h4,h5,h6,li,pre,blockquote,tr,dt,dd,figcaption,summary",zt=()=>innerWidth<=Tn&&innerHeight<=Ln,Wt=t=>{const e=document.createTreeWalker(t,NodeFilter.SHOW_TEXT);let r="";for(;r.length<600&&e.nextNode();)r+=e.currentNode.nodeValue.slice(0,600-r.length);const n=r.replace(/\s+/g," ").trim().slice(0,120);let a=2166136261;for(let s=0;s<n.length;s++)a=Math.imul(a^n.charCodeAt(s),16777619);return n.length>11?a>>>0||1:0},Vt=t=>{for(let e=t;e&&e!==document.scrollingElement;e=e.parentElement){const r=getComputedStyle(e).position;if(r==="fixed"||r==="sticky"||e!==t&&e.scrollTop)return!1}return!0},Mn=()=>{const t=[],e=[];try{for(let r=0;r<16;r++){const n=document.elementFromPoint(innerWidth/(r%2?4:2),innerHeight*(r>>1)/8+1);let a=n?.closest($t)??n;for(;a&&!a.matches($t)&&![...a.childNodes].some(l=>l.nodeType===3&&l.nodeValue?.trim());)a=a.parentElement;const s=a&&!e.includes(a)?Wt(a):0;s&&!t.some(l=>l[0]===s&&l[2]===a.tagName)&&Vt(a)&&(e.push(a),t.push([s,Math.round(a.getBoundingClientRect().top),a.tagName]))}}catch{}return t.sort((r,n)=>+(r[1]<0)-+(n[1]<0)),t.length?t.slice(0,3):void 0},Pn=t=>{try{for(const[e,r,n]of t.a??[]){const a=document.getElementsByTagName(n);let s;for(let u=0;u<a.length&&a.length<5e3;u++)Wt(a[u])===e&&(s=s===void 0||s?.contains(a[u])?a[u]:null);const l=s?.getBoundingClientRect();if(l?.height&&s.checkVisibility?.()!==!1&&Vt(s)&&isFinite(r))return Math.max(0,Math.round(scrollY+l.top-r))}}catch{}return t.y};function Nn(){let t=0,e=!1,r=!1,n=!1,a={y:0},s=null;const l=E=>{try{sessionStorage.setItem(ut,JSON.stringify(E))}catch{}},u=E=>{if(clearTimeout(t),s===null)return;const I=s;s=null,l({y:I,a:E&&I>0?Mn():void 0})},R=()=>{if(e){e=!1;return}r=!0,s=scrollY,clearTimeout(t),t=setTimeout(u,Rn,!0)};try{addEventListener("scroll",R,{passive:!0}),addEventListener("pagehide",()=>u())}catch{}const b=()=>{let E;try{E=sessionStorage.getItem(ut)}catch{return null}if(E===null)return null;let I;try{I=JSON.parse(E)}catch{I=null}const{y:D,a:q}=I??{};if(!(typeof D=="number"&&Number.isFinite(D)&&D>=0)){try{sessionStorage.removeItem(ut)}catch{}return null}const $=H=>Array.isArray(H)&&typeof H[0]=="number"&&Number.isFinite(H[1])&&typeof H[2]=="string";return{y:D,a:Array.isArray(q)&&q.length<4&&q.every($)?q:void 0}};let y=!1,p=-1;const k=E=>{try{const I=scrollY,D=Pn(E);scrollTo({top:D,left:0,behavior:"instant"}),a=zt()?E:{y:D,a:E.a},n=!0,clearTimeout(t),s=null,l(a),p=scrollY,p!==I&&(e=!0);const q=D!==E.y&&document.readyState!=="complete";(p!==D||q)&&!y&&(y=!0,addEventListener("load",()=>{try{scrollY===p&&k(b()??a)}catch{}},{once:!0}))}catch{}},L=()=>{try{return!!location.hash}catch{return!0}};let m=!1;const j=()=>{try{if(m||!zt())return;m=!0;const E=Date.now(),I=()=>{try{removeEventListener("resize",I)}catch{}Date.now()-E>On||r||L()||k(b()??a)};addEventListener("resize",I)}catch{}};let A=!1,_=!1;return{restore(){if(A||(A=!0,L()))return;const E=b();E!==null&&(k(E),j())},promoted(){if(_||(_=!0,L()))return;const E=b();E!==null?(k(E),j()):n&&k(a)}}}function Cn(t,e,r,n){let a=null;try{a=window.trustedTypes?.createPolicy("frame-runtime",{createScriptURL:R=>R})??null}catch{}const s=window.Worker,l=s?.prototype,u=Object.freeze({Worker:s,workerOn:l?.addEventListener,workerPost:l?.postMessage,workerTerminate:l?.terminate,fetch:window.fetch.bind(window),preventDefault:Event.prototype.preventDefault,now:Date.now,policy:a,origins:e});r(t).then(R=>R?.bootTopLevel?R.bootTopLevel(u,n):n.settle()).catch(()=>n.settle())}var so="modulepreload",io=function(t){return"/"+t},lo={},Fn=function(e,r,n){let a=Promise.resolve();function s(l){const u=new Event("vite:preloadError",{cancelable:!0});if(u.payload=l,window.dispatchEvent(u),!u.defaultPrevented)throw l}return a.then(l=>{for(const u of l||[])u.status==="rejected"&&s(u.reason);return e().catch(s)})},xn=window===top,Xt=Object.getOwnPropertyDescriptor(window,"claude"),ze=ln(xn,window.__FRAME_PREAMBLE?.topLevel,Xt?.writable===!1),ft=typeof ze=="object"&&ze[0],x=ft?_n():vn();(function(){const t=Object.defineProperty,e=globalThis,r=["RTCPeerConnection","webkitRTCPeerConnection","RTCDataChannel","RTCIceCandidate","RTCSessionDescription","RTCRtpSender","RTCRtpReceiver"];let n=0;for(let a=0;a<r.length;a++){const s=r[a];try{t(e,s,{value:void 0,writable:!1,configurable:!1})}catch{try{delete e[s]}catch{}try{t(e,s,{value:void 0,writable:!1,configurable:!0})}catch{}}typeof e[s]=="function"&&n++}if(n&&ze==="framed")try{x.post({__frame_rtc_lockdown_failed:n},"*")}catch{}})();var Yt=1e4,jn=2e3,dt=2e3,ht=Object.freeze([...window.__FRAME_PREAMBLE?.origins??["https://claude.ai","https://preview.claude.ai"]]);function Jt(t){for(const e of ht)if(e.endsWith(":*"))try{const r=new URL(t);if(`${r.protocol}//${r.hostname}:*`===e)return!0}catch{}else if(t===e)return!0;return!1}var Ne=Object.freeze({...window.__FRAME_PREAMBLE?.capabilities}),Ce=window.__FRAME_PREAMBLE?.transforms,pt=window.__FRAME_PREAMBLE?.comments,mt=window.__FRAME_PREAMBLE?.translate,me=window.__FRAME_PREAMBLE?.ldx,We=dr(window.__FRAME_PREAMBLE?.cred),Zt=(()=>{try{const[t]=performance.getEntriesByType("navigation"),e=t?.serverTiming?.find(r=>r.name==="frame-cred-exp");return e!==void 0&&/^\d{1,15}$/.test(e.description)?hr(Number(e.description)):void 0}catch{return}})();function Qt(t){return Fn(()=>import("/_runtime/"+t),void 0)}var Fe=new Set,er=setTimeout,In=fetch,Dn=AbortController,Hn=800+800*Math.random(),Bn=3e3,Ve=null,tr=new Map;function qn(t,e){let r=tr.get(t);return r||tr.set(t,r=Un(t,e)),r}function Un(t,e){if(Ve?.has(t))return Promise.resolve("csp");if(navigator.onLine===!1)return Promise.resolve("offline");const r=new Dn;let n=!1;return er(()=>{n=!0,r.abort()},Bn),In("/_runtime/"+t,{signal:r.signal}).then(a=>(r.abort(),a.ok?/javascript/i.test(a.headers.get("content-type")??"")?e instanceof Error&&/:\d+:\d+\)?$/m.test(e.stack??"")?"eval":"served":"mime":"http"),()=>n?"timeout":Ve?.has(t)?"csp":"net")}function se(t){if(!Ve){const e=Ve=new Set;try{document.addEventListener("securitypolicyviolation",r=>{const n=/\/_runtime\/([^/?#]+)/.exec(r.blockedURI);n&&r.disposition!=="report"&&e.add(n[1])})}catch{}}return Qt(t).catch(()=>new Promise(e=>er(e,Hn)).then(()=>Qt(t+"?r=1")).then(e=>(e!==void 0&&Fe.add(t),e)))}function rr(t,e,r){return{contract:t.contract,changes:new Set(t.changes??[]),flags:new Set(t.flags??[]),capabilities:t.capabilities??{},capBudgets:t.capBudgets??{},brokerGen:t.brokerGen,transforms:new Map,shellOrigin:e,shell:r,mount:bt,hooks:Xe,pipe:()=>({wrap:(n,a)=>(...s)=>{try{return a(...s)}catch(l){return Promise.reject(l)}}})}}var we=null,X=null;function nr(t,e,r){try{Object.defineProperty(t,e,{value:r,writable:!1,configurable:!1,enumerable:!0})}catch{try{Object.defineProperty(t,e,{value:r,writable:!1,configurable:!0,enumerable:!0})}catch{}}}var vt=!1,Xe={editBefore:null,edit:null};function Kn(t,e,r=!1){const n=[];let a;if(r)try{Xe.editBefore?.(t)}catch{}for(const s of t.elements){const l=document.querySelector(`[data-id="${s.target}"]`);if(!l){a=s.target;break}if([...Object.keys(s.attrsSet??{}),...s.attrsRemoved??[]].some(u=>!yr(u)||gr(l,u))){a=s.target;break}if(s.text!==void 0&&(!Sr(l)||Tr(l))){a=s.target;break}for(const[u,R]of Object.entries(s.attrsSet??{}))if(!ar(l,u)){try{l.setAttribute(u,R)}catch{}or(l,u,R)}for(const u of s.attrsRemoved??[])ar(l,u)||(l.removeAttribute(u),or(l,u,null));typeof s.text=="string"&&Ar(l,s.text),n.push(s.target)}if(r)try{Xe.edit?.(t.seq,n,a)}catch{}if(a!==void 0){x.post({__frame_patch_miss:{seq:t.seq}},e);return}try{document.dispatchEvent(new CustomEvent("claude:edit",{detail:{seq:t.seq,targets:n}}))}catch{}}function or(t,e,r){if(!(t instanceof HTMLInputElement))return;const n=e.toLowerCase();n==="checked"?t.checked=r!==null:n==="value"&&t.type!=="file"&&(t.value=r??"")}function ar(t,e){const r=e.toLowerCase(),n=t;return r==="data-id"||(r==="value"||r==="checked")&&(n.__artifactSecret===!0||/^(password|hidden|file)$/.test(n.type??"")||/(^|\s)(cc-|one-time-code|current-password|new-password)/i.test(`${t.getAttribute("autocomplete")??""} ${n.autocomplete??""}`))}function sr(t){const e=document.documentElement;t==="light"||t==="dark"?(e.dataset.theme=t,e.style.colorScheme=t,vt=!0):vt&&(delete e.dataset.theme,e.style.colorScheme="",vt=!1)}var ie=new Map,_t=null;function yt(){let t;const e={u:new Promise(r=>{t=r}),r:r=>{e.done=!0,t(r)},done:!1,nulled:!1};return e}function Ye(t,e){t.nulled=!0,t.ver=e,t.r(null)}function gt(t,e){for(const[r,n]of ie)n.done||(e&&n.asked?e(r,n):Ye(n,t))}function Gn(){for(const t of ie.values())if(t.asked&&!t.done)return!0;return!1}var $n=Object.freeze(Object.assign(Object.create(null),{call:Function.prototype.call,apply:Function.prototype.apply,bind:Function.prototype.bind})),wt=!1,bt=(t,e)=>{let r=ie.get(t);if(r?.nulled&&wt)r=yt(),ie.set(t,r);else if(!r||r.done){r?.nulled&&X&&x.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:t,phase:"install"}},X);return}const n=typeof e=="function"?Object.setPrototypeOf(e,$n):Object.assign(Object.create(null),e);typeof n.then=="function"&&delete n.then,r.want=void 0,r.r(Object.freeze(n))};function ir(){const t=Xt?.value??{};nr(window,"claude",t);for(const e of Object.keys(Ne)){if(t[e]!==void 0){nr(t,e,t[e]);continue}ie.set(e,yt())}if(t.use===void 0){const e=r=>{if(typeof r!="string"||!Object.hasOwn(Ne,r))return Promise.resolve(null);let n=ie.get(r);return n?(_t&&(n.nulled||n.want!==void 0)&&(n=_t(r,n)),n.asked=!0,n.u):Promise.resolve(t[r]??null)};try{Object.defineProperty(t,"use",{value:e,writable:!0,configurable:!0,enumerable:!1})}catch{}}return t}if(ze==="framed"){let t;const e=Ce&&pe.test(Ce)?se(Ce).catch(c=>{t={f:Ce,e:c}}):Promise.resolve(void 0),r=c=>{if(c.type==="auxclick"&&c.button!==1)return;const h=c.target,g=h&&h.closest?h.closest("a[href],area[href]"):null;if(!g)return;const C=g.getAttribute("href");if(!C)return;let O;try{O=new URL(C,document.baseURI)}catch{return}if((O.protocol==="http:"||O.protocol==="https:")&&O.origin!==location.origin){c.preventDefault();const z=(g.getAttribute("target")??"").toLowerCase(),B=c.type==="auxclick"||c.metaKey||c.ctrlKey||c.shiftKey||c.altKey||!["","_self","_top","_parent"].includes(z);x.post({__frame_nav:!0,url:O.href,newTab:B},"*")}};addEventListener("click",r,!0),addEventListener("auxclick",r,!0);const n={},a=c=>{c.isTrusted&&(n.pointer=!0)},s=c=>{c.isTrusted&&(n.click=!0)};addEventListener("pointermove",a,{capture:!0,passive:!0}),addEventListener("click",s,{capture:!0,passive:!0});const l={cb:null};addEventListener("keydown",c=>l.cb?.(c),!0);const u={cb:null};addEventListener("keydown",c=>u.cb?.(c));const R=pn();e.then(c=>c?.installEscapeForward?.(l,h=>{X&&x.post(h,X)})),e.then(c=>{try{c?.installFocusKeep?.()}catch{}}),e.then(c=>{if(!c?.wireNav)return;const h=x.port("*");c.wireNav(h),removeEventListener("click",r,!0),removeEventListener("auxclick",r,!0),removeEventListener("pointermove",a,!0),removeEventListener("click",s,!0),c.wireEngagement?.(n,h,R)});let b=null;try{b=Nn()}catch{}const y=document.readyState==="loading"?new Promise(c=>document.addEventListener("DOMContentLoaded",()=>c(),{once:!0})):Promise.resolve();let p="dcl",k=!1;y.then(()=>{k=!0});let L=null,m=null;try{m=Kr(window.name),L=Bt(null,m)}catch{}const j=ir();let A=null;try{A=un(j,L,{post:(c,h)=>x.post(c,h),dcl:y},m)}catch{}e.then(c=>{try{A&&c?.installHotExtras?.(A)}catch{}});let _=null;const E=()=>Array.isArray(_?.flags)&&_.flags.includes("frame_ldx_runtime")&&!!me&&pe.test(me)&&document.querySelector("script#an-form")!==null;try{A?.hydration(E,Gr)}catch{}let I=null,D=0;const q=x.on((c,h,g,C)=>{Jt(h)&&Pr(c)&&(C(),_=c.__frame_init,X=h,q(),clearTimeout(D),I?.())});if(We){const c=Zt===void 0?{__frame_cred:We}:{__frame_cred:We,exp:Zt};for(const h of ht)try{h.endsWith(":*")||x.post(c,h)}catch{}}x.post({__frame_connect:!0},"*");try{A?.afterConnect()}catch{}const $=setTimeout,H=clearTimeout,xe=()=>new Promise(c=>$(c,0));let be=()=>NaN,je=()=>[];try{be=performance.now.bind(performance),je=performance.getEntriesByType.bind(performance)}catch{}let K=0;const Ee=()=>{try{x.post({__frame_alive:!0},"*")}catch{}K=$(Ee,jn)},Ie=()=>H(K);Ee(),addEventListener("load",Ie,{once:!0});const le=new Promise(c=>{I=c,D=setTimeout(()=>{q(),c()},Yt)}),te=new WeakSet;addEventListener("error",c=>{c.target&&te.add(c.target)},!0);try{An(qt(),We,()=>{e.then(c=>{try{c?.drawRefusedNotice?.()}catch{}})})}catch{}const ve=()=>{let c=[];try{c=[...document.querySelectorAll("link[rel~=stylesheet]:not([rel~=alternate])")].filter(g=>!g.sheet&&!g.disabled&&!te.has(g)&&g.getAttribute("href")&&URL.canParse(g.href)&&(!g.media||matchMedia(g.media).matches))}catch{}let h=c.length;return h===0?Promise.resolve():new Promise(g=>{try{const C=dt-be();C>0&&(p="sheets");const O=$(g,C>0?C<dt?C:dt:0),z=()=>{--h===0&&(H(O),g())};for(const B of c)B.addEventListener("load",z,{once:!0}),B.addEventListener("error",z,{once:!0})}catch{g()}})};y.then(()=>{try{b?.restore()}catch{}});const Je=Promise.all([le,y,e]).then(c=>{if(_?.hostOverlays!==!0||!X)return;const h=c[2],g=B=>{try{return B?.()===!0}catch{return!1}},C=g(h?.declaresCover),O=_.hostSides===!0?{cover:C,sides:g(h?.declaresSides)}:{cover:C};if(x.post({__frame_layout:O},X),_.hostBackground!==!0)return;const z=X;return xe().then(ve).then(()=>{try{h?.watchBackground?.(B=>x.post({__frame_layout:{...O,background:B}},z))}catch{}})}),Se={cb:null};x.on((c,h)=>{if(Jt(h)&&Nr(c)){try{b?.promoted()}catch{}Se.cb?.()}}),le.then(async()=>{if(!_||!X){gt();try{A?.onNoInit()}catch{}return}if(sr(_.theme),_.hostVisible===!1&&e.then(i=>i?.applyHostVisible?.(!1,R)),_.hostKeys!==void 0){const i=X,S=_.hostKeys;e.then(w=>w?.installHostKeyForward?.(u,S,M=>x.post(M,i)))}try{A?.onInit(_.hot,X)}catch{}let c;const h=()=>{try{!c&&me&&E()&&(c=se(me),c.then(i=>i?.prefetch?.()).catch(()=>{}))}catch{}};h(),y.then(h);const g=X,C=x.port(g),O=(i,S)=>x.post({__frame_cap_telemetry:{kind:"cap-load-error",cap:i,phase:S}},g),z=(i,S,w)=>{new Promise(M=>M(qn(S,w))).then(M=>O(i,M),()=>O(i))},B=i=>x.post({__frame_cap_recovered:{cap:i}},g);let J=_.brokerGen;const ce=()=>A?.boot.ver??"",G=ce(),_e=(i,S)=>{const w=ce();H(S.t),S.want=w,S.t=$(()=>{S.done||Ye(S,w)},Yt),x.post({__frame_cap_want:!0,cap:i,ver:w},g)},Q=(i,S)=>{const w=ie.get(i.cap),M=Ne[i.cap];if(!S||!w||w.done||w.want!==i.ver||!pe.test(M))return;if(H(w.t),w.want=void 0,J=i.brokerGen??J,i.ver!==ce()){_e(i.cap,w);return}if(!i.grant||i.cap==="network"){Ye(w,i.ver);return}const ee=we,Z=we={...ee,capabilities:{...ee.capabilities,[i.cap]:i.grant},capBudgets:{...ee.capBudgets,[i.cap]:{...ee.capBudgets[i.cap],...i.budgets}}};se(M).then(W=>{Fe.has(M)&&B(i.cap),Z.brokerGen=J,wt=!0;try{W?.install?.(Z)}catch{O(i.cap,"install")}finally{wt=!1}},W=>z(i.cap,M,W)).then(()=>{w.done||Ye(w,i.ver)})};let De=!1,He=!1;x.on((i,S,w)=>{if(S!==g)return;try{if(A?.onShell(i))return}catch{}if(Fr(i)&&sr(i.__frame_theme.theme),tn(i)&&Q(i,w),w&&rn(i)&&(J=i.brokerGen??J),Cr(i)){const Z=i.__frame_host_visible.visible;e.then(W=>W?.applyHostVisible?.(Z,R))}Mr(i)&&Kn(i.__frame_patch,g,w);const M=i?.__fc_mode;M&&typeof M=="object"&&!De&&pt&&pe.test(pt)&&(De=!0,se(pt).then(Z=>Z.install?.(g,M.on===!0,C)).catch(()=>{}));const ee=i?.__ft_cmd;ee&&typeof ee=="object"&&!He&&mt&&pe.test(mt)&&(He=!0,se(mt).then(Z=>Z.install?.(g,ee,C)).catch(()=>{}))});const ue=Object.keys(_.capabilities??{}).filter(i=>Object.hasOwn(Ne,i)).map(i=>[i,Ne[i]]).filter(i=>typeof i[1]=="string"&&pe.test(i[1])),re=g;let Be=!1,ke=()=>{};const Ze=new Promise(i=>{ke=()=>{Be=!0,i()}}),ye=()=>(Be||(p="caps"),Ze),Qe=L!==null||jt(_.hot)||_.hostVisible===!1||_.hostOverlays===!0;k&&(p="init");const ge=_.hostBackground===!0,Ae=y.then(()=>(ge&&ye(),ge?Je:void 0)).then(()=>Qe?ye():xe()).then(ve).then(()=>{let i=!0;try{i=Qe||Gn()}catch{}return i?ye():void 0}).then(()=>{Ie();const i=pr(je,be);x.post(i?{__frame_ready:!0,nav:i,gate:p}:{__frame_ready:!0,gate:p},re),e.then(S=>{S?.installSizeReporter?.(re,Se,C),S?.installPaintReporter?.(C)})}),qe=await Promise.allSettled(ue.map(([,i])=>se(i))),fe=await e;if(fe?.buildBoot||(t?z("_transforms",t.f,t.e):O("_transforms")),fe?.buildBoot)try{we=fe.buildBoot(_,fe.TRANSFORMS??{},{shellOrigin:re,mount:bt,hooks:Xe,shell:C},i=>x.post({__frame_cap_telemetry:i},re))}catch{O("_transforms","install"),we=rr(_,re,C)}else we=rr(_,re,C);fe?.buildBoot&&Fe.has(Ce??"")&&B("_transforms");const de=we;de.brokerGen=J,qe.forEach((i,S)=>{const[w,M]=ue[S];if(i.status!=="fulfilled"){z(w,M,i.reason);return}Fe.has(M)&&B(w);try{i.value?.install?.(de)}catch{O(w,"install")}});const Ue=_.capWants===!0;Ue&&(_t=(i,S)=>{const w=ce();if(!w)return S;if(!S.nulled)return S.want!==w&&_e(i,S),S;if(w===S.ver)return S;const M=yt();return ie.set(i,M),_e(i,M),M}),gt(G,Ue&&ce()!==G?_e:void 0),ke(),await Ae;let et=!1;try{et=E()}catch{}me&&et?(c??se(me)).then(i=>i?.boot?.({shellOrigin:g,build:de.flags.has(fn),hot:A?.hot??null,carried:A?.carried(),presented:()=>A?.presented()??!0})).catch(()=>!1).then(i=>{A?.hydrated(),i!==!0?O("_ldx"):Fe.has(me)&&B("_ldx")}):A?.hydrated()})}else ft&&(ir(),Cn(ft,ht,se,{settle:gt,mount:bt}))})();</script><!-- /frame-runtime --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>EBITDA 모델 VIDW V4</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* 레이아웃: Key Driver 입력판(숫자칸+슬라이더) → 결과(총합·블록·워터폴·5년궤적). 입력에서 전부 계산 */
+:root{
+  --bg:#0B0F17;--panel:#141A26;--line:#232B3D;--grid:#1E2636;
+  --fg:#EDF1F7;--sub:#8A94AC;--faint:#5A6478;
+  --med:#35C7A6;--comm:#E8A33D;--total:#7C8CF8;
+  --sub-c:#35C7A6;--ref:#5B9BD5;--fam:#9B7CF8;
+  --cost:#E0564B;--hc:#E8618C;--good:#35C7A6;--in:#7C8CF8;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);margin:0;max-width:720px;margin:0 auto;
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  padding-left:max(14px,env(safe-area-inset-left,0px));
+  padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:18px 60px;}
+.mono{font-family:'IBM Plex Mono','SF Mono',monospace}
+.disp{font-family:'Space Grotesk',system-ui,sans-serif}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 15px;margin-bottom:12px}
+.chip{padding:6px 11px;border-radius:7px;font-size:12px;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--sub);font-family:inherit;transition:.12s}
+.chip.on{background:var(--med);color:#06241d;border-color:var(--med);font-weight:600}
+.row{display:flex;gap:7px;flex-wrap:wrap}
+h1{font-size:19px;font-weight:700;margin:4px 0 0;line-height:1.3;text-wrap:balance}
+.sub{color:var(--sub);font-size:12px}
+.faint{color:var(--faint);font-size:10px;line-height:1.6}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:5px 3px;text-align:right}th:first-child,td:first-child{text-align:left}
+tbody tr{border-top:1px solid var(--grid)}
+.tnum{font-variant-numeric:tabular-nums}
+input[type=number]{width:88px;background:var(--bg);border:1px solid var(--line);border-radius:6px;color:var(--fg);padding:5px 7px;font-size:13px;font-family:'IBM Plex Mono',monospace;text-align:right}
+input[type=number]:focus{outline:2px solid var(--in);outline-offset:0;border-color:var(--in)}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:var(--line);outline:none;margin:5px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--acc,#35C7A6);cursor:pointer;border:2px solid var(--bg)}
+input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--acc,#35C7A6);cursor:pointer;border:2px solid var(--bg)}
+.sw{position:relative;width:34px;height:19px;border-radius:10px;cursor:pointer;flex-shrink:0;transition:.15s;background:var(--line)}
+.sw.on{background:var(--acc,#E8A33D)}
+.knob{position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:#fff;transition:left .15s}
+.sw.on .knob{left:17px}
+.inrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 0}
+.inlabel{font-size:12px;flex:1;min-width:0}
+.pill{display:inline-block;font-size:9px;padding:1px 6px;border-radius:4px;margin-left:5px}
+.pill.warn{background:rgba(224,86,75,.18);color:#E0564B}
+.blk{border-left:3px solid var(--bc,#35C7A6);padding-left:11px}
+.mrow{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
+.seclabel{font-size:11px;font-weight:600;color:var(--in);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.5px}
+button:focus-visible,.chip:focus-visible,.sw:focus-visible{outline:2px solid var(--med);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600&display=swap">
+
+<div style="margin-bottom:14px">
+  <div class="mono" style="color:var(--med);font-size:11px;letter-spacing:1.2px">EBITDA 모델 · VIDW · V4 (입력기반)</div>
+  <h1 class="disp">Key Driver 입력 → EBITDA 자동계산</h1>
+  <div class="sub" style="margin-top:5px;line-height:1.5">16개 드라이버를 바꾸면 매출·비용·EBITDA가 전부 다시 계산. 사업계획(InvitesLoop 5Y Projection v8.1) 로직 내장. 단위 USD.</div>
+</div>
+
+<details class="card">
+  <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--total)">📖 사용 설명서 · 전체 가정사항</summary>
+  <div style="margin-top:12px">
+
+    <div style="font-size:12px;font-weight:600;color:var(--cost);margin-bottom:6px">⚠ 파일럿 전엔 검증 불가 (입력해도 가정)</div>
+    <div class="blk" style="--bc:var(--cost);margin-bottom:8px">
+      <div style="font-size:12px;font-weight:600">① 연간 방문횟수 4회 · 방문당 진료비 $250</div>
+      <div class="faint">VISTA에서 환자 '수'만 받고 방문'건수'는 미수령. 외래연계·Family 매출 전체가 이 가정 위. 실제보다 높으면 통째로 과대계상. → 파일럿 KPI 1순위.</div>
+    </div>
+    <div class="blk" style="--bc:var(--cost);margin-bottom:8px">
+      <div style="font-size:12px;font-weight:600">② 기업병원 37개 의료 전환계수</div>
+      <div class="faint">검진·임직원 중심이라 비스타 외래병원과 다름. 비스타 계수 보수화(구독10%·외래20%)해 빌려씀. 앵커 PoC 전엔 모름.</div>
+    </div>
+    <div class="blk" style="--bc:var(--cost);margin-bottom:8px">
+      <div style="font-size:12px;font-weight:600">③ 기업병원 커머스 직구매 침투율(기본 25%)</div>
+      <div class="faint">의료 전환과 독립 모수. 중국 직장인 K-뷰티·건기식 구매력 높다는 전제 — 의료는 느려도 제품구매는 빠르다는 가정. 중국 기업 복지몰·단체구매 벤치마크 미확보. → 파일럿에서 '기업병원 직원 K제품 구매율' 검증.</div>
+    </div>
+    <div class="blk" style="--bc:var(--cost);margin-bottom:14px">
+      <div style="font-size:12px;font-weight:600">④ RPM 이탈감소 효과 δ (기본 35%)</div>
+      <div class="faint">M3 저수지의 복리를 만드는 핵심. 웨어러블/RPM이 구독 이탈을 얼마나 막는지 — 미국 RPM 문헌 방향성만 있고 중국 실측 없음. → 파일럿에서 'RPM 사용자 vs 비사용자 이탈률 비교'로 검증(δ의 실측 경로).</div>
+    </div>
+
+    <div class="seclabel" style="color:var(--in)">입력 드라이버 — 앱·전환 (Y1→Y5)</div>
+    <div style="overflow-x:auto;margin-bottom:12px"><table class="tnum" style="font-size:11px"><thead><tr><th>항목</th><th>Y1</th><th>Y5</th><th>근거</th></tr></thead><tbody>
+      <tr><td>앱 접점률</td><td class="mono">95%</td><td class="mono">100%</td><td class="faint">접수단계 앱강제</td></tr>
+      <tr><td>Medical 전환율</td><td class="mono">20%</td><td class="mono">80%</td><td class="faint">한국 비대면 76% 참고</td></tr>
+      <tr><td>Wellness 전환율</td><td class="mono">5%</td><td class="mono">10%</td><td class="faint">핑안 3.98%,+1%/년</td></tr>
+      <tr><td>외래연계율(심천)</td><td class="mono">20%</td><td class="mono">80%</td><td class="faint">선형증가</td></tr>
+      <tr><td>외래연계율(북경)</td><td class="mono">4.3%</td><td class="mono">80%</td><td class="faint">북경 Y1 낮음</td></tr>
+    </tbody></table></div>
+
+    <div class="seclabel" style="color:var(--in)">입력 드라이버 — 단가·계수</div>
+    <div style="overflow-x:auto;margin-bottom:12px"><table class="tnum" style="font-size:11px"><thead><tr><th>항목</th><th>Y1</th><th>Y5</th><th>근거</th></tr></thead><tbody>
+      <tr><td>Medical 구독료</td><td class="mono">$120</td><td class="mono">$250</td><td class="faint">Vista 협의</td></tr>
+      <tr><td>Wellness 구독료</td><td class="mono">$80</td><td class="mono">$100</td><td class="faint">중국 월90RMB</td></tr>
+      <tr><td style="color:var(--cost)">방문당 진료비 ⚠</td><td class="mono">$250</td><td class="mono">$300</td><td class="faint">연 $1,000~1,200</td></tr>
+      <tr><td style="color:var(--cost)">연간 방문횟수 ⚠</td><td class="mono" colspan="2" style="text-align:center">4회</td><td class="faint">미검증</td></tr>
+      <tr><td>Service Fee 요율</td><td class="mono" colspan="2" style="text-align:center">25%</td><td class="faint">미서명(암묵동의)</td></tr>
+      <tr><td>구독자당 가족 수</td><td class="mono" colspan="2" style="text-align:center">1.62명</td><td class="faint">중국통계국2021</td></tr>
+    </tbody></table></div>
+
+    <div class="seclabel" style="color:var(--in)">입력 드라이버 — 환자수 (2025 VISTA 실적)</div>
+    <div style="overflow-x:auto;margin-bottom:12px"><table class="tnum" style="font-size:11px"><thead><tr><th></th><th>검진</th><th>외래</th><th>외래만성%</th></tr></thead><tbody>
+      <tr><td>심천</td><td class="mono">10,156</td><td class="mono">21,268</td><td class="mono">8%</td></tr>
+      <tr><td>북경</td><td class="mono">1,946</td><td class="mono">45,421</td><td class="mono">16%</td></tr>
+    </tbody></table></div>
+
+    <div class="seclabel" style="color:var(--comm)">비용·자본</div>
+    <div style="overflow-x:auto;margin-bottom:12px"><table class="tnum" style="font-size:11px"><thead><tr><th>항목</th><th>값</th><th>근거</th></tr></thead><tbody>
+      <tr><td>운영비/R&D</td><td class="mono">매출 22%</td><td class="faint">입력가능</td></tr>
+      <tr><td>마케팅·CAC·간접비</td><td class="mono">38%→19%</td><td class="faint">KPMG정합 신설</td></tr>
+      <tr><td>초기사업개발비</td><td class="mono">$550K</td><td class="faint">Y1~2, 입력가능</td></tr>
+      <tr><td>HC O&M 수수료</td><td class="mono">매출 5%</td><td class="faint">엑셀누락,신설</td></tr>
+      <tr><td>1인 인건비</td><td class="mono">$28,124</td><td class="faint">급여+사보25%(고정)</td></tr>
+      <tr><td>임직원 수</td><td class="mono">5→20명</td><td class="faint">Y1→Y5(고정)</td></tr>
+      <tr><td>로열티</td><td class="mono">매출 10%</td><td class="faint">라이선싱(고정)</td></tr>
+      <tr><td>CAPEX</td><td class="mono">$1,650K</td><td class="faint">Y1 1,050+Y3 600</td></tr>
+      <tr><td>법인세율</td><td class="mono">15%</td><td class="faint">HNTE(고정)</td></tr>
+      <tr><td>WACC/terminal</td><td class="mono">17.5%/2%</td><td class="faint">KPMG 참고</td></tr>
+    </tbody></table></div>
+
+    <div class="seclabel" style="color:var(--med)">고정 상수 (입력 불가)</div>
+    <div class="faint" style="margin-bottom:12px">· 환자 연성장 3% · 검진 위험군(비건강) 46.2%, 만성전단계 26.0%, 만성보유 20.1%(美年×베이징대 2020) · 감가 내용연수 5년 · 인건비상승 3.8%(Mercer)</div>
+
+    <div class="seclabel" style="color:var(--total)">런칭 타임라인 (가정)</div>
+    <div style="overflow-x:auto;margin-bottom:12px"><table class="tnum" style="font-size:11px"><thead><tr><th>요소</th><th>시작</th><th>근거</th></tr></thead><tbody>
+      <tr><td>의료 ① 구독</td><td class="mono">Y1</td><td class="faint">사업개시</td></tr>
+      <tr><td>의료 ② 외래연계</td><td class="mono">Y1</td><td class="faint">사업개시</td></tr>
+      <tr><td>의료 ③ Family</td><td class="mono">Y1</td><td class="faint">구독 동반</td></tr>
+      <tr><td>④ 기업병원 37개</td><td class="mono">Y3</td><td class="faint">파일럿·앵커 검증 후(가드레일12)</td></tr>
+      <tr><td>커머스 P1·P2</td><td class="mono">Y2</td><td class="faint">Y1은 의료 셋업 집중</td></tr>
+      <tr><td>초기사업개발비</td><td class="mono">Y1~Y2</td><td class="faint">셋업기 일회성</td></tr>
+      <tr><td>CAPEX 2차($600K)</td><td class="mono">Y3</td><td class="faint">기업병원 확산 대응</td></tr>
+    </tbody></table></div>
+
+    <div class="seclabel" style="color:var(--comm)">기업병원·커머스 (upside, 전부 가정)</div>
+    <div class="faint" style="margin-bottom:12px">· 기업병원: 80만명 풀, 침투 Y3 10%→Y4 20%→Y5 30%, <b>의료</b>전환은 보수(구독10%·외래20%)<br>· 커머스 <b>Y2 런칭</b>(Y1은 의료 셋업 집중). <b>두 경로 병행</b>: ①의료구독자×40%(고전환) + ②기업병원 전체×직구매침투율(의료와 독립, K제품은 전환 빠름)<br>· P1 처방 수수료15%(규제25%차감), P2 제품 수수료20%, JITAI/SiBC 코칭료 월$8 — <b>전부 placeholder, 실 단가 교체 필요</b></div>
+
+    <div class="seclabel" style="color:var(--med)">M3 Reservoir Dynamics (가정, 토글)</div>
+    <div class="faint" style="margin-bottom:8px">· <b>Reservoir model</b>: 사업계획(v8.1)은 '매년 신규 전환'만 계산 — 작년 구독자가 올해 사라지는 셈. 실제론 Medical(만성) 구독자가 <b>이탈 안 하고 누적</b>(compounding).<br>· <b>Stock(y+1) = Stock(y) × (1 − effective churn) + new inflow</b>. Y1은 BP와 동일, Y2부터 벌어짐.<br>· <b>Effective churn = base churn × (1 − RPM adoption × δ)</b> — RPM/wearable이 이탈의 마개. base 25% → RPM 적용 21.9%.</div>
+    <div style="overflow-x:auto;margin-bottom:8px"><table class="tnum" style="font-size:11px"><thead><tr><th>Param</th><th>기본</th><th>상태</th></tr></thead><tbody>
+      <tr><td>Base churn</td><td class="mono">25%</td><td class="faint">가정(핑안 등 참고)</td></tr>
+      <tr><td>RPM adoption</td><td class="mono">35%</td><td class="faint">가정</td></tr>
+      <tr><td style="color:var(--cost)">RPM churn-cut δ ⚠</td><td class="mono">35%</td><td class="faint">미검증 — 파일럿</td></tr>
+    </tbody></table></div>
+    <div class="faint" style="margin-bottom:12px">· 전략 함의: RPM = '월 이용료'가 아니라 'reservoir 마개'가 본질. 화웨이 기기 파트너십 가치 = churn 방어 인프라를 파트너가 깖.<br>· Reservoir는 낙관 방향 → 토글. 보수 제시 땐 OFF(엑셀식 연간계산)로 비교.<br>· Wellness(비만성)는 reservoir 미적용 — 연간 유지(복리 부적합).</div>
+
+    <div class="seclabel" style="color:var(--cost)">가드레일 (이중계상·과장 방지)</div>
+    <div class="faint" style="margin-bottom:12px">· G1 기업병원(④)은 네트워크 자산 — 2병원과 별도, 엑셀 'VISTA Network'로 이중계상 안 함(⑤로 일원화).<br>· G2 기업 확산은 검증 후(Y3~) — 파일럿·앵커 PoC 전엔 OFF(가드레일12).<br>· G3 커머스는 의료 저수지에서 파생(CAC 0) — 독립 신규획득으로 부풀리지 않음.<br>· G4 저수지는 Medical(만성)만 — Wellness는 연간 유지(만성이 아니라 복리 부적합).<br>· G5 가격 5년 동결 가정 — 물량·전환·누적만으로 성장(단가 인상으로 부풀리지 않음).</div>
+
+    <div class="seclabel" style="color:var(--total)">KPMG 실사 대비</div>
+    <div class="faint" style="margin-bottom:12px">· 기본 프리셋 <b>'KPMG정합'</b>은 KPMG Base Case(EV $15.8M, 2026.9 실사)에 맞춰 보수화한 설정.<br>· 차이의 핵심은 <b>비용</b>: KPMG는 영업비용률 성숙기 57%·초기 84%로 무겁게 잡음. 이를 재현하려 <b>마케팅·CAC·간접비(38%→19%)</b> 드라이버 신설.<br>· 'BP기준' 프리셋 = v8.1 원안인데 마케팅비를 과소계상해 KPMG보다 낙관적. VISTA·투자자엔 'KPMG정합'으로 제시 권장.<br>· 'BP기준'·'공격'은 KPMG Optimistic($20M) 수준 — upside 시나리오로만.</div>
+
+    <div class="seclabel" style="color:var(--total)">읽는 법</div>
+    <div class="faint">· 입력(숫자칸·슬라이더) 바꾸면 전부 재계산. %·단가는 Y1값이고 Y5까지 자동증가.<br>· <b>Y1 '비용>매출' 정상</b> — 초기 셋업비(사업개발비). Y2~3 흑자전환(J-커브).<br>· EBITDA는 감가 제외. CAPEX 포함 실현금흐름은 Y1 크게 마이너스(자금조달 별도).<br>· 검증된 부분: 2병원 의료 ①②③ = 사업계획(v8.1) 실수치와 오차 0.1% 일치. 가정인 부분: ⚠ 3종(방문빈도·기업병원 의료전환·커머스 직구매침투)·커머스 단가·upside 전반.<br>· <b>BP = Business Plan(사업계획)</b> = InvitesLoop 5Y Projection v8.1 엑셀. 'BP기준' 프리셋 = 그 원안.</div>
+  </div>
+</details>
+
+<div class="card" style="margin-bottom:12px">
+  <div class="sub" style="margin-bottom:8px">시나리오 프리셋</div>
+  <div class="row" id="presets"></div>
+  <div class="faint" id="presetDesc" style="margin-top:7px"></div>
+</div>
+
+<div id="view"></div>
+
+<div class="faint" style="margin-top:14px">입력값에서 v8.1 엑셀 로직(환자→세그먼트→전환→구독+외래연계+Family)을 그대로 계산. 기업병원·커머스는 upside(토글). ⚠항목은 입력 가능하나 파일럿 검증 전까지 가정.</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const C={med:'#35C7A6',comm:'#E8A33D',total:'#7C8CF8',ref:'#5B9BD5',fam:'#9B7CF8',cost:'#E0564B',hc:'#E8618C',good:'#35C7A6',subc:'#8A94AC',faint:'#5A6478',line:'#232B3D',grid:'#1E2636',text:'#EDF1F7'};
+
+// ═══ Key Drivers (16개 입력) + 보조 설정 ═══
+const D={
+  // A. 환자 베이스 (숫자입력) — 2025 VISTA 실적
+  sz_screen:10156, sz_out:21268, bj_screen:1946, bj_out:45421,
+  // B. 전환 엔진 (슬라이더 %) — Y1 기준값, Y5까지 선형증가
+  conv_med:13,    // Medical 전환율 Y1 (→Y5 80) — KPMG정합 기본
+  conv_well:4,    // Wellness 전환율 Y1 (→Y5 10)
+  ref_rate:12,    // 외래연계율 Y1 (→Y5 80)
+  app_rate:95,    // 앱 접점률 Y1 (→Y5 100)
+  // C. 단가 (숫자입력, $) — Y1 기준
+  fee_med:120,    // Medical 구독료 (→Y5 250)
+  fee_well:80,    // Wellness 구독료 (→Y5 100)
+  visit_cost:250, // 방문당 진료비 ⚠ (→Y5 300)
+  // D. 계수 (슬라이더)
+  visits:4,       // 연간 방문횟수 ⚠
+  svc_fee:25,     // Service Fee 요율 %
+  fam_size:1.62,  // 구독자당 가족 수
+  // 저수지 동학 (v3.3 이식)
+  reservoir:true, // M3 저수지 ON/OFF (OFF=엑셀식 연간계산)
+  churn0:25,      // 기본 연 이탈률 % (RPM 없을 때)
+  rpmAdopt:35,    // RPM/웨어러블 침투율 %
+  rpmDelta:35,    // RPM의 이탈감소 효과 δ % (유효churn = churn0×(1−rpmAdopt×δ))
+  // E. 비용 (슬라이더)
+  opex_rate:22,   // 운영비율 %
+  mktg:38,        // 마케팅·CAC·간접비 Y1 % (→Y5 절반). KPMG 영업비용률 맞춤
+  // 보조 (토글·배율)
+  corp:true, corpPen:0.4, p1:false, p2:false, coachFee:8, omRate:5, bizdev:550, hcAttr:false,
+  commCorpPen:25,  // 기업병원 커머스 직구매 침투율 % (의료와 독립 — K제품은 전환 빠름)
+  _preset:'kpmg',
+};
+
+// 고정 상수
+const K={
+  growth:0.03,            // 환자 연성장
+  risk_ratio:0.462,       // 검진 위험군(비건강) 비율
+  sz_chronic:0.08, bj_chronic:0.16, // 외래 만성질환자 비율
+  labor_unit:28124,       // 1인 인건비
+  staff:[5,6,15,17,20],   // 임직원 수
+  royalty:0.10, taxRate:0.15,
+  dep:[210000,210000,330000,330000,330000],
+  capex:[1050000,0,600000,0,0],
+  corpPool:800000, corpPenBase:[0,0,0.10,0.20,0.30],
+};
+
+// Y1→Y5 선형보간 (Y1값, Y5목표)
+function ramp(y1,y5,y){return y1+(y5-y1)*(y/4);}
+
+const PRESETS={
+  kpmg:{name:'KPMG정합',set:{conv_med:13,conv_well:4,ref_rate:12,svc_fee:25,opex_rate:22,mktg:38,corpPen:0.4,bizdev:550,omRate:5,p1:false,p2:false},desc:'KPMG Base(EV $15.8M)에 맞춘 보수 가정 — 실사 정합용 기준'},
+  base:{name:'BP기준', set:{conv_med:20,conv_well:5,ref_rate:20,svc_fee:25,opex_rate:20,mktg:20,corpPen:1.0,bizdev:519,omRate:5,p1:false,p2:false},desc:'v8.1 BP 원안 (KPMG보다 낙관 — 마케팅비 과소)'},
+  aggr:{name:'공격',   set:{conv_med:28,conv_well:7,ref_rate:28,svc_fee:25,opex_rate:18,mktg:15,corpPen:1.4,bizdev:350,omRate:3,p1:true,p2:true},desc:'전환↑·침투↑·커머스 — KPMG Optimistic 수준'},
+  reg: {name:'규제강화',set:{conv_med:13,conv_well:4,ref_rate:12,svc_fee:25,opex_rate:22,mktg:40,corpPen:0.3,bizdev:550,omRate:5,p1:false,p2:true},desc:'처방커머스 불가·확산둔화'},
+  feecut:{name:'요율인하',set:{conv_med:13,conv_well:4,ref_rate:12,svc_fee:15,opex_rate:22,mktg:38,corpPen:0.4,bizdev:550,omRate:5,p1:false,p2:false},desc:'VISTA 25%→15% 요구'},
+};
+function applyPreset(k){const p=PRESETS[k];Object.keys(p.set).forEach(key=>D[key]=p.set[key]);D._preset=k;render();}
+
+let yr=4;
+const fmt=n=>Math.round(n).toLocaleString('en-US');
+const fmtK=n=>(n/1000).toFixed(0)+'K';
+
+// ═══ 엑셀 로직 계산 엔진 ═══
+function siteRev(screen0,out0,chronic,y,refY1){
+  const g=Math.pow(1+K.growth,y);
+  const screen=screen0*g, out=out0*g;
+  const app=ramp(D.app_rate,100,y)/100;
+  const cmed=ramp(D.conv_med,80,y)/100;
+  const cwell=ramp(D.conv_well,10,y)/100;
+  const feeMed=ramp(D.fee_med,250,y);
+  const feeWell=ramp(D.fee_well,100,y);
+
+  // 검진경로: 비건강(위험군) → Medical, 건강 → Wellness
+  const nonHealthy=screen*K.risk_ratio;
+  const healthy=screen*(1-K.risk_ratio);
+  const szMed_screen=nonHealthy*app*cmed;
+  const szWell_screen=healthy*app*cwell;
+  // 외래경로: 만성질환자 → Medical, 그외 → Wellness
+  const chronicN=out*chronic;
+  const outMed=chronicN*app*cmed;
+  const outWell=(out-chronicN)*app*cwell;
+
+  const subRev=(szMed_screen+outMed)*feeMed+(szWell_screen+outWell)*feeWell;
+
+  // 외래연계: 검진 비건강인원 × 연계율 × 방문 × 진료비 × fee
+  // refY1 = 사이트별 Y1 연계율 (심천=슬라이더값, 북경은 더 낮게). Y5는 둘다 80% 수렴
+  const refRate=ramp(refY1,80,y)/100;
+  const visitCost=ramp(D.visit_cost,300,y);
+  const refPatients=nonHealthy*refRate;
+  const refRev=refPatients*D.visits*visitCost*(D.svc_fee/100);
+
+  // Family: 구독자 × 가족수 × 비건강비율 × 연계율 × 방문 × 진료비 × fee
+  const subscribers=szMed_screen+szWell_screen+outMed+outWell;
+  const famMembers=subscribers*D.fam_size;
+  const famRef=famMembers*K.risk_ratio*refRate;
+  const famRev=famRef*D.visits*visitCost*(D.svc_fee/100);
+
+  // 저수지용: Medical(만성) 신규 유입과 Wellness 신규, 구독료 분리 반환
+  const medNew=szMed_screen+outMed;   // Medical 신규전환 (M3 저수지에 누적)
+  const wellNew=szWell_screen+outWell; // Wellness 신규 (연간 유지)
+  return {subRev,refRev,famRev,subscribers,medNew,wellNew,feeMed,feeWell};
+}
+
+// 유효 churn = churn0 × (1 − rpmAdopt×δ) — RPM이 이탈의 마개 (v3.3 이식)
+function effChurn(){return (D.churn0/100)*(1-(D.rpmAdopt/100)*(D.rpmDelta/100));}
+
+// Medical(M3) 구독자 스톡을 Y0부터 누적 — 저수지 동학
+function medStock(y){
+  const r=1-effChurn();
+  let stock=0;
+  for(let i=0;i<=y;i++){
+    const sz=siteRev(D.sz_screen,D.sz_out,K.sz_chronic,i,D.ref_rate);
+    const bj=siteRev(D.bj_screen,D.bj_out,K.bj_chronic,i,D.ref_rate*0.215);
+    const newMed=sz.medNew+bj.medNew;
+    stock=stock*r+newMed; // 전년 잔류 + 신규
+  }
+  return stock;
+}
+
+function calc(y){
+  const sz=siteRev(D.sz_screen,D.sz_out,K.sz_chronic,y,D.ref_rate);
+  const bj=siteRev(D.bj_screen,D.bj_out,K.bj_chronic,y,D.ref_rate*0.215); // 북경 Y1 연계율 낮음(엑셀 4.3/20)
+  // 구독매출 = Medical + Wellness. 저수지 ON이면 Medical은 스톡 누적, OFF면 연간 신규
+  const feeMed=ramp(D.fee_med,250,y), feeWell=ramp(D.fee_well,100,y);
+  const medActive=D.reservoir?medStock(y):(sz.medNew+bj.medNew);
+  const wellNew=sz.wellNew+bj.wellNew;
+  const subMed=medActive*feeMed;
+  const subWell=wellNew*feeWell;
+  const sub=subMed+subWell;
+  const ref=sz.refRev+bj.refRev;
+  const fam=sz.famRev+bj.famRev;
+  // 활성 구독자 = Medical 활성(저수지 반영) + Wellness 신규
+  const subscribers=medActive+wellNew;
+  const medRevBase=sub+ref+fam;
+
+  // 기업병원 (Y3~, 보수계수)
+  let corpRev=0,corpReach=0;
+  if(D.corp){
+    corpReach=K.corpPool*K.corpPenBase[y]*D.corpPen;
+    const atRisk=corpReach*0.46;
+    corpRev=corpReach*0.95*0.10*ramp(D.fee_med,250,y)*0 + // 구독(간이)
+            corpReach*0.95*0.10*180 +
+            atRisk*0.20*D.visits*ramp(D.visit_cost,300,y)*(D.svc_fee/100);
+  }
+  const medRev=medRevBase+corpRev;
+
+  // 커머스 (upside) — Y2부터 런칭 (Y1은 의료 셋업 집중)
+  const commLive=(y>=1);
+  // ① 의료경로: 2병원 의료구독자 × 40% (고전환, 신뢰·데이터 기반)
+  const commMed=commLive?subscribers*0.40:0;
+  // ② 직구매경로: 기업병원 전체인원 × 커머스 침투율 (의료와 독립, K제품은 전환 빠름)
+  const commCorp=commLive?corpReach*(D.commCorpPen/100):0;
+  const commBuyers=commMed+commCorp;
+  const p1=D.p1?(commBuyers*120*0.15*0.75 + commBuyers*D.coachFee*12):0;
+  const p2=D.p2?(commBuyers*200*0.20 + commBuyers*D.coachFee*12):0;
+  const commRev=p1+p2;
+
+  const rev=medRev+commRev;
+
+  // 비용
+  const labor=K.labor_unit*K.staff[y];
+  const opex=rev*(D.opex_rate/100);
+  // 마케팅·CAC·간접비: Y1 높고 Y5 절반으로 체감 (성숙할수록 CAC↓)
+  const mktgRate=ramp(D.mktg,D.mktg*0.5,y)/100;
+  const mktg=rev*mktgRate;
+  const bizdev=(y<2)?D.bizdev*1000:0;
+  const dep=K.dep[y];
+  const royalty=rev*K.royalty;
+  const om=rev*(D.omRate/100);
+  const hcCost=D.hcAttr?K.capex[y]:0;
+
+  const commonCost=labor+opex+mktg+bizdev+royalty+om+hcCost+dep;
+  const medShare=rev>0?medRev/rev:1, commShare=rev>0?commRev/rev:0;
+  const medCost=commonCost*medShare, commCost=commonCost*commShare;
+  const medEbitda=medRev-(medCost-dep*medShare);
+  const commEbitda=commRev-(commCost-dep*commShare);
+  const totCost=medCost+commCost;
+  const totEbitda=rev-(totCost-dep);
+  const ebit=totEbitda-dep;
+  const tax=ebit>0?ebit*K.taxRate:0;
+  const nopat=ebit-tax;
+
+  return {sub,ref,fam,corpRev,corpReach,commRev,p1,p2,medRev,commRev,rev,
+    medCost,commCost,totCost,medEbitda,commEbitda,totEbitda,labor,opex,mktg,bizdev,royalty,om,hcCost,dep,ebit,tax,nopat,subscribers,commBuyers,commMed,commCorp,corpReach,medActive,subMed,subWell};
+}
+
+// ═══ 렌더 ═══
+function render(){
+  document.getElementById('presets').innerHTML=Object.keys(PRESETS)
+    .map(k=>`<button class="chip${D._preset===k?' on':''}" data-preset="${k}">${PRESETS[k].name}</button>`).join('');
+  document.getElementById('presetDesc').textContent=D._preset?('▸ '+PRESETS[D._preset].desc):'슬라이더 수동조정 중 (프리셋 해제)';
+
+  const d=calc(yr);
+  document.getElementById('view').innerHTML=`
+    ${inputPanel()}
+    ${yearTabs()}
+    ${totalCard(d)}
+    <div class="card"><div class="sub" style="margin-bottom:6px">5Y EBITDA trajectory ($) — tap bar for year</div>
+      <div style="position:relative;height:200px"><canvas id="traj"></canvas></div></div>
+    <div class="card"><div class="sub" style="margin-bottom:6px">Waterfall (Y${yr+1}) — Medical→Commerce→Total EBITDA</div>
+      <div style="position:relative;height:270px"><canvas id="wf"></canvas></div></div>
+    ${blockCard('Medical (W·M1·M3)',C.med,d.medRev,d.medCost,d.medEbitda,
+      [['① 구독',d.sub],['② 외래연계',d.ref],['③ Family',d.fam]].concat(d.corpRev>0?[['④ 기업병원',d.corpRev]]:[]))}
+    ${blockCard('Commerce',C.comm,d.commRev,d.commCost,d.commEbitda,
+      d.commRev>0?[['P1 파마',d.p1],['P2 K-커머스',d.p2]]:[['(레버 OFF)',0]])}
+    ${(D.p1||D.p2)&&yr===0?`<div class="card" style="margin-top:-6px"><div class="faint">커머스는 Y2 런칭 — Y1은 의료 셋업 집중이라 커머스 매출 0. Y2 탭에서 확인.</div></div>`:''}
+    ${d.commRev>0?`<div class="card" style="margin-top:-6px"><div class="faint">커머스 구매자 ${fmt(d.commBuyers)}명 = 의료경로 ${fmt(d.commMed)}명(구독자×40%) + 기업병원 직구매 ${fmt(d.commCorp)}명(전체 ${fmt(d.corpReach)}명×${D.commCorpPen}%). 의료는 침투 느려도 K제품 직구매는 빠른 전환 — 독립 모수. (Y2 런칭)</div></div>`:''}
+  `;
+  bind();drawTraj();drawWF(d);
+}
+
+function inputPanel(){
+  return `<div class="card">
+    <div class="sub" style="margin-bottom:4px">Key Drivers (16 inputs)</div>
+    <div class="faint" style="margin-bottom:6px">숫자칸 = 직접입력 / 슬라이더 = 감. 바꾸면 즉시 재계산. %·단가는 Y1값(Y5까지 자동증가).</div>
+
+    <div class="seclabel">A · Patient base (2025 actuals)</div>
+    ${numIn('sz_screen','Shenzhen screening')}${numIn('sz_out','Shenzhen outpatient')}
+    ${numIn('bj_screen','Beijing screening')}${numIn('bj_out','Beijing outpatient')}
+
+    <div class="seclabel">B · Conversion (Y1%, ramps to Y5)</div>
+    ${slIn('conv_med','Medical conv rate',0,60,1,'%','→Y5 80%',C.med)}
+    ${slIn('conv_well','Wellness conv rate',0,30,1,'%','→Y5 10%',C.med)}
+    ${slIn('ref_rate','Outpatient referral',0,80,1,'%','→Y5 80%',C.ref)}
+    ${slIn('app_rate','App reach',50,100,1,'%','→Y5 100%',C.med)}
+
+    <div class="seclabel">C · Pricing ($, Y1)</div>
+    ${numIn('fee_med','Medical fee/yr','$')}${numIn('fee_well','Wellness fee/yr','$')}
+    ${numIn('visit_cost','Cost per visit ⚠','$')}
+
+    <div class="seclabel">D · Coefficients</div>
+    ${slIn('visits','Visits per year ⚠',1,8,1,'회','미검증',C.cost)}
+    ${slIn('svc_fee','Service Fee rate',10,40,1,'%','미서명',C.ref)}
+    ${slIn('fam_size','Family members/sub',0,3,0.1,'명','통계국',C.fam)}
+
+    <div class="seclabel">E · Cost</div>
+    ${slIn('opex_rate','OpEx rate',10,35,1,'%','of rev',C.cost)}
+    ${slIn('mktg','Marketing·CAC·overhead',0,50,1,'%','Y1,→Y5 half',C.cost)}
+    ${slIn('bizdev','Biz-dev (setup)',0,1000,50,'K','Y1~2',C.cost)}
+    ${slIn('omRate','HC O&M fee',0,15,1,'%','of rev',C.hc)}
+
+    <div class="seclabel">M3 Reservoir Dynamics (복리)</div>
+    ${togIn('reservoir','Reservoir ON (구독자 누적)',C.med)}
+    ${D.reservoir?`<div class="faint" style="padding:2px 0 6px">Effective churn <span class="mono" style="color:var(--med)">${(((D.churn0/100)*(1-(D.rpmAdopt/100)*(D.rpmDelta/100)))*100).toFixed(1)}%</span> = base ${D.churn0}% × (1 − RPM adopt ${D.rpmAdopt}% × δ ${D.rpmDelta}%)</div>
+    ${slIn('churn0','Base churn',10,40,1,'%','RPM 없을때',C.cost)}
+    ${slIn('rpmAdopt','RPM adoption',0,80,1,'%','화웨이 등',C.med)}
+    ${slIn('rpmDelta','RPM churn-cut δ',0,60,1,'%','미검증(파일럿)',C.med)}`:''}
+
+    <div class="seclabel">Add-ons (upside·multiplier)</div>
+    ${togIn('corp','Corp clinics ×37 (Y3~)',C.med)}
+    ${D.corp?slIn('corpPen','  Penetration mult',0.2,2,0.1,'×','기본10/20/30%',C.med):''}
+    ${togIn('p1','P1 Invites Pharma',C.comm)}
+    ${togIn('p2','P2 K-Commerce',C.comm)}
+    ${(D.p1||D.p2)?slIn('coachFee','  JITAI coaching/mo',0,30,1,'$','반복매출',C.comm):''}
+    ${(D.p1||D.p2)&&D.corp?slIn('commCorpPen','  Corp direct-buy pen',0,60,1,'%','의료와 독립(K제품↑)',C.comm):''}
+    ${togIn('hcAttr','CAPEX → HC attribution',C.hc)}
+  </div>`;
+}
+
+function numIn(k,label,unit=''){
+  return `<div class="inrow"><span class="inlabel">${label}</span>
+    <span>${unit?`<span class="faint">${unit}</span> `:''}<input type="number" value="${D[k]}" data-num="${k}"></span></div>`;
+}
+function slIn(k,label,min,max,step,unit,note,c){
+  const v=D[k];
+  return `<div style="padding:4px 0">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span class="inlabel" style="font-size:12px">${label} <span class="faint">${note}</span></span>
+      <span class="mono" style="color:${c};font-size:12px">${step<1?v.toFixed(1):v}${unit}</span>
+    </div>
+    <input type="range" min="${min}" max="${max}" step="${step}" value="${v}" data-sl="${k}" style="--acc:${c}">
+  </div>`;
+}
+function togIn(k,label,c){
+  return `<div class="inrow"><span class="inlabel" style="font-weight:600;color:${D[k]?'var(--fg)':'var(--sub)'}">${label}</span>
+    <div class="sw${D[k]?' on':''}" data-tog="${k}" style="--acc:${c}" tabindex="0" role="switch" aria-checked="${D[k]}"><div class="knob"></div></div></div>`;
+}
+
+function yearTabs(){
+  return `<div class="row" style="margin:0 0 12px">${[0,1,2,3,4].map(i=>`<button class="chip${yr===i?' on':''}" data-y="${i}">Y${i+1}</button>`).join('')}</div>`;
+}
+
+// 3-tier 밴드: 현재 입력 기준 보수~공격 EBITDA 범위 (v3.3 이식)
+function bandEbitda(y){
+  const save=JSON.stringify(D);
+  const lo=Object.assign({},PRESETS.kpmg.set), hi=Object.assign({},PRESETS.aggr.set);
+  Object.assign(D,lo); const dLo=calc(y).totEbitda;
+  Object.assign(D,JSON.parse(save)); Object.assign(D,hi); const dHi=calc(y).totEbitda;
+  Object.assign(D,JSON.parse(save));
+  return {lo:dLo,hi:dHi};
+}
+
+function totalCard(d){
+  const m=d.rev>0?d.totEbitda/d.rev*100:0;
+  const band=bandEbitda(yr);
+  return `<div class="card" style="border-color:var(--total)">
+    <div class="sub" style="color:var(--total)">■ Total (Y${yr+1})</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px">
+      <div><div class="faint">Revenue</div><div class="mono" style="font-size:21px;font-weight:600;color:var(--med)">$${fmt(d.rev)}</div></div>
+      <div><div class="faint">Cost</div><div class="mono" style="font-size:21px;font-weight:600;color:var(--cost)">$${fmt(d.totCost)}</div></div>
+      <div><div class="faint">EBITDA (${m.toFixed(0)}%)</div><div class="mono" style="font-size:21px;font-weight:600;color:${d.totEbitda>=0?'var(--good)':'var(--cost)'}">${d.totEbitda<0?'-':''}$${fmt(Math.abs(d.totEbitda))}</div></div>
+    </div>
+    <div class="faint" style="margin-top:6px">Net income(after-tax): <span class="mono" style="color:${d.nopat>=0?'var(--good)':'var(--cost)'}">${d.nopat<0?'-':''}$${fmt(Math.abs(d.nopat))}</span> · Active subs ${fmt(d.subscribers)}${D.reservoir?` (M3 reservoir ${fmt(d.medActive)})`:''}</div>
+    <div class="faint" style="margin-top:4px">EBITDA band (cons~aggr): <span class="mono">$${fmt(band.lo)} ~ $${fmt(band.hi)}</span></div>
+  </div>`;
+}
+
+function blockCard(title,c,rev,cost,ebitda,rows){
+  const m=rev>0?ebitda/rev*100:0;
+  return `<div class="card">
+    <div class="blk" style="--bc:${c};margin-bottom:9px"><div style="font-size:13px;font-weight:600">${title}</div></div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:9px">
+      <div><div class="faint">Rev</div><div class="mono" style="font-size:16px;font-weight:600;color:${c}">$${fmt(rev)}</div></div>
+      <div><div class="faint">Cost</div><div class="mono" style="font-size:16px;font-weight:600;color:var(--cost)">$${fmt(cost)}</div></div>
+      <div><div class="faint">EBITDA (${m.toFixed(0)}%)</div><div class="mono" style="font-size:16px;font-weight:600;color:${ebitda>=0?'var(--good)':'var(--cost)'}">${ebitda<0?'-':''}$${fmt(Math.abs(ebitda))}</div></div>
+    </div>
+    ${rows.map(([l,v])=>`<div class="mrow"><span style="color:var(--sub)">${l}</span><span class="mono">${v?'$'+fmt(v):'—'}</span></div>`).join('')}
+  </div>`;
+}
+
+let tchart=null,wfchart=null;
+function drawTraj(){
+  const med=[],comm=[],tot=[],labels=[];
+  for(let y=0;y<5;y++){const dd=calc(y);med.push(Math.round(dd.medEbitda));comm.push(Math.round(dd.commEbitda));tot.push(Math.round(dd.totEbitda));labels.push('Y'+(y+1));}
+  const ctx=document.getElementById('traj');if(!ctx)return;
+  if(tchart)tchart.destroy();
+  tchart=new Chart(ctx,{type:'bar',
+    data:{labels,datasets:[
+      {label:'Medical',data:med,backgroundColor:C.med,stack:'a'},
+      {label:'Commerce',data:comm,backgroundColor:C.comm,stack:'a',borderRadius:{topLeft:3,topRight:3}},
+      {label:'Total EBITDA',type:'line',data:tot,borderColor:C.total,borderWidth:2,pointRadius:3,pointBackgroundColor:C.total,tension:.2},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,onClick:(e,els)=>{if(els.length){yr=els[0].index;render()}},
+      plugins:{legend:{labels:{color:C.subc,font:{size:10},boxWidth:11}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{color:C.subc,font:{size:10}}},
+        y:{stacked:true,grid:{color:C.grid},ticks:{color:C.subc,font:{size:9},callback:v=>fmtK(v)}}}}
+  });
+}
+function drawWF(d){
+  const steps=[['Med rev',d.medRev,C.med,'up'],['Med cost',-d.medCost,C.cost,'down']];
+  if(d.commRev>0){steps.push(['Comm rev',d.commRev,C.comm,'up']);steps.push(['Comm cost',-d.commCost,C.cost,'down']);}
+  steps.push(['EBITDA',null,C.total,'total']);
+  const labels=[],base=[],bars=[],colors=[];let run=0;
+  steps.forEach(([l,v,c,t])=>{labels.push(l);
+    if(t==='total'){base.push(0);bars.push(d.totEbitda);colors.push(d.totEbitda>=0?c:C.cost);run=d.totEbitda;}
+    else if(t==='up'){base.push(run);bars.push(v);colors.push(c);run+=v;}
+    else{base.push(run+v);bars.push(-v);colors.push(c);run+=v;}});
+  const ctx=document.getElementById('wf');if(!ctx)return;
+  if(wfchart)wfchart.destroy();
+  wfchart=new Chart(ctx,{type:'bar',
+    data:{labels,datasets:[{data:base,backgroundColor:'transparent',stack:'s'},{data:bars,backgroundColor:colors,stack:'s',borderRadius:2}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>x.datasetIndex===1?'$'+fmt(Math.abs(bars[x.dataIndex])):''}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{color:C.subc,font:{size:10}}},
+        y:{stacked:true,grid:{color:C.grid},ticks:{color:C.subc,font:{size:9},callback:v=>fmtK(v)}}}}
+  });
+}
+
+function bind(){
+  document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>applyPreset(b.dataset.preset));
+  document.querySelectorAll('[data-y]').forEach(b=>b.onclick=()=>{yr=+b.dataset.y;render()});
+  document.querySelectorAll('[data-num]').forEach(i=>i.onchange=()=>{D[i.dataset.num]=+i.value||0;D._preset=null;render()});
+  document.querySelectorAll('[data-sl]').forEach(s=>s.oninput=()=>{D[s.dataset.sl]=+s.value;D._preset=null;render()});
+  document.querySelectorAll('[data-tog]').forEach(b=>{
+    const act=()=>{D[b.dataset.tog]=!D[b.dataset.tog];D._preset=null;render()};
+    b.onclick=act;b.onkeydown=e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();act()}};
+  });
+}
+render();
+</script>
+
+</body></html>
